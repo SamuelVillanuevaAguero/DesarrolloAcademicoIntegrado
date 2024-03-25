@@ -299,26 +299,52 @@ public class BusquedaEstadisticaController implements Initializable {
             System.out.println("La ruta de exportación es inválida.");
             return;
         }
+        
+        File carpeta = new File(rutaExportacion);
+        if (carpeta.exists()) {
+            
+        }else{
+            if (carpeta.mkdir()) {
+                System.out.println("Se creó la carpeta exitosamente");
+            }
+        }
 
         try (FileInputStream fileInputStream = new FileInputStream(rutaArchivo); Workbook workbook = new XSSFWorkbook(fileInputStream)) {
 
             // Ajustar el nombre del archivo según el formato
             String extension = (formato == 1) ? ".pdf" : ".xlsx";
-            File archivoExportado = new File(rutaExportacion + "reporte_(Version_" + (version + 1) + ")" + extension);
+            File archivoExportado = new File(rutaExportacion + "\\reporte_(Version_" + (version + 1) + ")" + extension);
 
             // Modificar el contenido del archivo si el formato es Excel
             if (formato == 2) {
-                int periodo = comboPeriodo.getValue().toString().equalsIgnoreCase("Enero - Julio") ? 1 : 2;
+                int periodo = comboPeriodo.getValue().equalsIgnoreCase("Enero - Julio") ? 1 : 2;
                 llenarExcel(workbook, tabla, comboAño.getValue(), periodo);
 
                 // Guardar los cambios en el archivo exportado
                 try (FileOutputStream outputStream = new FileOutputStream(archivoExportado)) {
                     workbook.write(outputStream); // Guardar los cambios en el archivo de destino
                 }
+                
+                Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+                alerta.setTitle("Guardado");
+                alerta.setHeaderText(null);
+                alerta.setContentText("Archivo EXCEL importado correctamente.");
+                alerta.showAndWait();
+                
                 System.out.println("Archivo exportado exitosamente como Excel en: " + archivoExportado.getAbsolutePath());
             } else if (formato == 1) {
                 // Exportar como PDF (implementación pendiente)
+                int periodo = comboPeriodo.getValue().equalsIgnoreCase("Enero - Julio") ? 1 : 2;
+                System.out.println("PERIODO: "+periodo);
+                llenarExcel(workbook, tabla, comboAño.getValue(), periodo);
                 exportarAPDF(workbook, archivoExportado);
+                
+                Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+                alerta.setTitle("Guardado");
+                alerta.setHeaderText(null);
+                alerta.setContentText("Archivo PDF importado correctamente.");
+                alerta.showAndWait();
+                
                 System.out.println("Archivo exportado exitosamente como PDF en: " + archivoExportado.getAbsolutePath());
             } else {
                 System.out.println("Formato no soportado.");
@@ -364,7 +390,7 @@ public class BusquedaEstadisticaController implements Initializable {
                 fila = sheet.createRow(7);
             }
             celda = fila.createCell(3);
-            celda.setCellValue(periodo < 7 ? "ENERO - JULIO" : "AGOSTO - DICIEMBRE");
+            celda.setCellValue(periodo == 1 ? "ENERO - JULIO" : "AGOSTO - DICIEMBRE");
             celda.setCellStyle(estiloPeriodo(workbook));
 
             // Llenar las filas del archivo Excel
@@ -463,7 +489,7 @@ public class BusquedaEstadisticaController implements Initializable {
 
             celda = fila.createCell(3);
             celda.setCellStyle(estiloNegrillas(workbook));
-            celda.setCellValue(obtenerJefe("C:\\Users\\Samue\\Documents\\NetBeansProjects\\DesarrolloAcademico\\Gestion_de_Cursos\\Sistema\\informacion_modificable\\info.xlsx", año, periodo).toUpperCase());
+            celda.setCellValue(obtenerJefe(ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\informacion_modificable\\info.xlsx", año, periodo).toUpperCase());
 
             // Combinar las celdas desde (fila 0, columna 0) hasta (fila 0, columna 3)
             CellRangeAddress rango = new CellRangeAddress(filaInicio + y + 3, filaInicio + y + 3, 3, 4); // Fila inicial, Fila final, Columna inicial, Columna final
@@ -489,7 +515,7 @@ public class BusquedaEstadisticaController implements Initializable {
             e.printStackTrace();
         }
     }
-
+    
     private CellStyle crearEstiloCelda(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         style.setBorderTop(CellStyle.BORDER_THIN);
@@ -578,18 +604,41 @@ public class BusquedaEstadisticaController implements Initializable {
             e.printStackTrace();
         }
     }
+    
+    public void exportarAPDF(Workbook poiWorkbook, File archivoExportado) {
+        try {
+            // Guardar el Workbook de Apache POI en un archivo temporal
+            File archivoTemporal = File.createTempFile("temp_excel", ".xlsx");
+            try (FileOutputStream fos = new FileOutputStream(archivoTemporal)) {
+                poiWorkbook.write(fos);
+            }
 
-    private void exportarAPDF(Workbook workbook, File archivoExportado) {
-        /*try {
-            // Cargar el archivo Excel con Aspose.Cells
+            // Cargar el archivo temporal en un Workbook de Aspose.Cells
+            com.aspose.cells.Workbook asposeWorkbook = new com.aspose.cells.Workbook(archivoTemporal.getAbsolutePath());
 
-            // Guardar el archivo Excel como PDF
-            workbook.save(fileToSave.getAbsolutePath(), SaveFormat.PDF);
+            // Exportar como PDF
+            asposeWorkbook.save(archivoExportado.getAbsolutePath(), SaveFormat.PDF);
 
-            System.out.println("Archivo exportado exitosamente como PDF en: " + fileToSave.getAbsolutePath());
+            System.out.println("Archivo exportado exitosamente como PDF en: " + archivoExportado.getAbsolutePath());
+
+            // Eliminar el archivo temporal
+            archivoTemporal.delete();
         } catch (Exception e) {
+            System.err.println("Error al exportar el archivo a PDF:");
             e.printStackTrace();
-        }*/
+        }
+    }
+
+   public void exportarAPDF(com.aspose.cells.Workbook workbook, File archivoExportado) {
+        try {
+            // Guardar el archivo Excel como PDF
+            workbook.save(archivoExportado.getAbsolutePath(), SaveFormat.PDF);
+
+            System.out.println("Archivo exportado exitosamente como PDF en: " + archivoExportado.getAbsolutePath());
+        } catch (Exception e) {
+            System.err.println("Error al exportar el archivo a PDF:");
+            e.printStackTrace();
+        }
     }
 
     public void exportarAPDF(String rutaArchivo, File fileToSave) {
@@ -1290,11 +1339,12 @@ public class BusquedaEstadisticaController implements Initializable {
             int version = obtenerUltimaSemana(rutaArchivo, "formato\\_\\(Version_\\d+\\)\\.xlsx", "Version", "xlsx");
             rutaArchivo += "formato_(Version_" + version + ").xlsx";
 
-            String rutaExportacion = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_exportados\\" + año + "\\" + periodo + "-" + año + "\\reportes_estadisticos\\";
+            String rutaExportacion = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_exportados\\" + año + "\\" + periodo + "-" + año + "\\reportes_estadisticos\\"+comboDepartamento.getValue();
             int versionReporte = obtenerUltimaSemana(rutaExportacion, "reporte\\_\\(Version_\\d+\\)\\.xlsx", "Version", "xlsx");
             switch (comboFormato.getValue() == null ? "default" : comboFormato.getValue()) {
                 case "PDF":
-                    //exportarArchivo(rutaArchivo, rutaExportacion, 1);
+                    versionReporte = obtenerUltimaSemana(rutaExportacion, "reporte\\_\\(Version_\\d+\\)\\.pdf", "Version", "pdf");
+                    exportarArchivo(rutaArchivo, rutaExportacion,  versionReporte, 1);
                     break;
                 case "EXCEL":
                     exportarArchivo(rutaArchivo, rutaExportacion, versionReporte, 2);
@@ -1348,13 +1398,13 @@ public class BusquedaEstadisticaController implements Initializable {
 
         // Validar que la carpeta existe y es un directorio
         if (!carpeta.exists() || !carpeta.isDirectory()) {
-            Logger.getLogger(this.getClass().getName()).log(Level.WARNING,
+            /*Logger.getLogger(this.getClass().getName()).log(Level.WARNING,
                     "La ruta especificada no es válida: " + carpetaDestino);
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("Ruta");
             alert.setHeaderText(null);
             alert.setContentText("Parece que el periodo no tiene información");
-            alert.showAndWait();
+            alert.showAndWait();*/
             return 1; // Si no es un directorio válido, asumimos que es la primera versión
         }
 

@@ -46,7 +46,7 @@ public class RespaldoController implements Initializable {
 
     private ToggleGroup grupoOpciones;
     private ToggleGroup grupoFormato;
-    private final String CARPETA_BASE = System.getProperty("user.home") + "/Desktop/Gestion_de_Cursos";
+    private final String CARPETA_BASE = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos";
     private File ultimaUbicacion = new File(System.getProperty("user.home"));
 
     @Override
@@ -309,7 +309,7 @@ public class RespaldoController implements Initializable {
         }
 
         // Obtener la ruta del escritorio
-        String escritorio = System.getProperty("user.home") + File.separator + "Desktop";
+        String escritorio = ControladorGeneral.obtenerRutaDeEjecusion();
         File carpetaDestino = new File(escritorio);
 
         // Crear un directorio temporal para la validación

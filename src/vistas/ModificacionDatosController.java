@@ -129,14 +129,12 @@ public class ModificacionDatosController implements Initializable {
         SpinnerValueFactory<Integer> docentesFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(100, 800, 100);
         totalDocentes.setValueFactory(docentesFactory);
         totalDocentes.setEditable(true);
-        
-        periodoEscolar.setValue((Calendar.getInstance().get(Calendar.MONTH) + 1) < 7 ? "Enero-Julio" : "Agosto-Diciembre");
+
         // Configuración del Spinner de año
         int añoActual = Calendar.getInstance().get(Calendar.YEAR); // Año actual fijo para el sistema
         SpinnerValueFactory<Integer> añoFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(2000, 2100, añoActual);
         año.setValueFactory(añoFactory);
         año.setEditable(true);
-        // Validación corregida para el Spinner de año
 
         // Validación para el Spinner de docentes
         totalDocentes.getEditor().focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -163,26 +161,21 @@ public class ModificacionDatosController implements Initializable {
             if (!newValue) { // Cuando pierde el foco
                 try {
                     String text = año.getEditor().getText();
-                    System.out.println("AÑO: "+text);
                     int value;
 
                     if (text.isEmpty()) {
-                        System.out.println("Blanco");
                         año.getValueFactory().setValue(añoActual);
                     } else {
                         value = Integer.parseInt(text);
                         if (value < 2000 || value > 2100) {
-                            System.out.println("2000, 2100");
                             mostrarAlerta("Validación", "El año debe estar entre 2000 y 2100", AlertType.WARNING);
                             año.getValueFactory().setValue(añoActual);
                             
                         } else {
-                            System.out.println("Else");
                             año.getValueFactory().setValue(value);
                         }
                     }
                 } catch (NumberFormatException e) {
-                    System.out.println("Catch");
                     año.getValueFactory().setValue(añoActual);
                 }
             }
@@ -217,11 +210,13 @@ public class ModificacionDatosController implements Initializable {
         botonGuardar.setOnMouseClicked(this::guardarDatosEnExcel);
         botonCerrar.setOnMouseClicked(event -> {
             try {
-                ControladorGeneral.cerrarVentana(event, "¿Quieres cerrar sesión?", getClass());
+                ControladorGeneral.cerrarVentana(event, "¿Quieres cerrar sesión??", getClass()
+                );
             } catch (IOException ex) {
                 Logger.getLogger(ModificacionDatosController.class.getName()).log(Level.SEVERE, null, ex);
             }
-        });
+        });     
+        
         botonMinimizar.setOnMouseClicked(this::minimizarVentana);
         botonRegresar.setOnMouseClicked(event -> {
             try {
@@ -321,7 +316,7 @@ public class ModificacionDatosController implements Initializable {
         if (hayDatos) {
             Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
             confirmacion.setTitle("Confirmación");
-            confirmacion.setHeaderText(null);
+            confirmacion.setHeaderText("¿Deseas guardar los datos?");
             confirmacion.setContentText("Tienes datos ingresados en los campos. ¿Deseas guardarlos antes de regresar?");
 
             ButtonType botonGuardar = new ButtonType("Guardar");
@@ -350,7 +345,7 @@ public class ModificacionDatosController implements Initializable {
         coordinadorField.clear();
         jefeDeptoField.clear();
         totalDocentes.getValueFactory().setValue(100); // Valor inicial del Spinner
-        año.getValueFactory().setValue(2024); // Valor inicial del año
+        año.getValueFactory().setValue(Calendar.getInstance().get(Calendar.YEAR)); // Valor inicial del año
         periodoEscolar.getSelectionModel().clearSelection(); // Limpiar selección del ComboBox
     }
 

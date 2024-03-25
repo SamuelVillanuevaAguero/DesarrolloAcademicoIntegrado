@@ -125,7 +125,7 @@ public class ExportacionReconocimientosController implements Initializable {
         for (int i = 20; i <= 50; i++) {
             txtHoras.getItems().add(String.valueOf(i));
         }
-        txtFormatos.getItems().addAll("PDF", "Word", "Ambos");
+        txtFormatos.getItems().addAll("Word");
 
         // Deshabilitar campos al inicio
         txtAreaNombreCurso.setDisable(true);
@@ -452,6 +452,37 @@ public class ExportacionReconocimientosController implements Initializable {
             String rutaArchivoGenerado = directorioSalida + "Reconocimiento_" + nombreDocente + ".docx";
             fos = new FileOutputStream(rutaArchivoGenerado);
             documento.write(fos);
+
+            return rutaArchivoGenerado; // Devolver la ruta del archivo generado
+        } finally {
+            // Cerrar recursos manualmente
+            if (fos != null) {
+                fos.close();
+            }
+            if (fis != null) {
+                fis.close();
+            }
+        }
+    }
+    
+    private String generarDocumentoPDF(String rutaPlantilla, String directorioSalida, String nombreDocente, String horasCurso) throws IOException {
+        FileInputStream fis = null;
+        FileOutputStream fos = null;
+        XWPFDocument documento = null;
+
+        try {
+            // Abrir la plantilla
+            fis = new FileInputStream(rutaPlantilla);
+            documento = new XWPFDocument(fis);
+
+            // Procesar todos los párrafos del documento
+            procesarParrafos(documento, nombreDocente, horasCurso);
+
+            // Guardar el archivo generado
+            String rutaArchivoGenerado = directorioSalida + "Reconocimiento_" + nombreDocente + ".docx";
+            fos = new FileOutputStream(rutaArchivoGenerado);
+            
+            //
 
             return rutaArchivoGenerado; // Devolver la ruta del archivo generado
         } finally {
