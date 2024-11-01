@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+
+<AnchorPane id="AnchorPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="580.0" prefWidth="1012.0" stylesheets="@../utilerias/general/Estilo.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="vistas.ImportacionArchivosController">
+   <children>
+      <HBox prefHeight="5.0" prefWidth="1012.0" styleClass="hbox">
+         <children>
+            <Button fx:id="botonRegresar" mnemonicParsing="false" styleClass="title-button" text="&lt;-" />
+            <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
+            <Button fx:id="botonMinimizar" mnemonicParsing="false" styleClass="title-button" text="-" />
+            <Button fx:id="botonCerrar" mnemonicParsing="false" styleClass="title-button" text="x" />
+         </children>
+      </HBox>
+   </children>
+</AnchorPane>
