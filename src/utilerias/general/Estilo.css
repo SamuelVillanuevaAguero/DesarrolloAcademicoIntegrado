@@ -54,7 +54,22 @@
 
 .button-azul:hover {  
     -fx-background-color: #335185; /* Color al hover */  
+}
+
+.button-blanco {  
+    -fx-background-color: white; /* Color de fondo */  
+    -fx-text-fill: #2f477a; /* Color del texto */  
+    -fx-font-size: 12px; /* Tamaño de fuente */  
+    -fx-padding: 10px 18px; /* Padding interno */  
+    -fx-border-radius: 5px; /* Bordes redondeados */  
+    -fx-border-color: #2f477a;
+    -fx-background-radius: 5px; /* Bordes redondeados */  
+    -fx-cursor: hand; /* Cursor tipo mano */  
 }  
+
+.button-blanco:hover {  
+    -fx-background-color: #b5c7e7; /* Color al hover */  
+}
 
 /* Estilo para etiquetas (labels) */  
 .label {  
@@ -62,10 +77,32 @@
     -fx-font-size: 14px; /* Tamaño de fuente */  
 }
 
+.label-principal {  
+    -fx-text-fill: #666666; /* Color del texto */  
+    -fx-font-size: 10px; /* Tamaño de fuente */  
+    -fx-font-weight: bold;
+}
+
+.label-vinculo {  
+    -fx-font-family: "Arial"; /* Tipografía */  
+    -fx-font-size: 14px; /* Tamaño de la fuente */  
+    -fx-text-fill: #1D3B6F; /* Color del texto */  
+    -fx-font-weight: bold; /* Negrita */  
+    -fx-underline: true; /* Subrayado */ 
+    -fx-cursor: HAND;
+}
+
 .title {
     -fx-font-size: 48px;
     -fx-font-weight: bold;
     -fx-text-fill: #2f477a; /* Azul oscuro */
+    -fx-font-family: 'Monserrat', sans-serif;
+}
+
+.title-subtitulo {
+    -fx-font-size: 16px;
+    /*-fx-font-weight: bold;*/
+    -fx-text-fill: #000000; /* Azul oscuro */
     -fx-font-family: 'Monserrat', sans-serif;
 }
 
@@ -178,3 +215,96 @@
 .card-info:hover {
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 15, 0, 0, 5);
 }
+
+/* Estilos de Tuchi*/
+
+.username-field {
+    -fx-background-color: white;
+    -fx-border-color: #c0c0c0;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 10 40 10 40; /* Espaciado para iconos */
+    -fx-font-size: 14px;
+    -fx-prompt-text-fill: #9099a3;
+    -fx-text-fill: #333333;
+}
+
+.password-field {
+    -fx-background-color: white;
+    -fx-border-color: #c0c0c0;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 10 40 10 40;
+    -fx-font-size: 14px;
+    -fx-prompt-text-fill: #9099a3;
+    -fx-text-fill: #333333;
+}
+
+.username-field:focused, .password-field:focused {
+    -fx-border-color: #6c63ff;
+}
+
+
+/* APARTADO DE NOTIFICACIONES ------------------------------------------------------------------------------------------------------------------------------------------------- */  
+
+.scroll-paneNoti {
+    -fx-background-color: transparent; /* Fondo del ScrollPane */
+}
+
+
+.notificationPane {
+    -fx-background-color: white; /* Color de fondo suave */
+    -fx-padding: 15px;
+    -fx-border-color: #ccc;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.2), 10, 0, 0, 5); /* Sombra */
+    -fx-max-width: 300px; /* Ancho máximo del Pane */
+    -fx-max-height: 400px; /* Alto máximo del Pane */
+    -fx-alignment: top-right;
+}
+
+.notificationBox {
+    -fx-background-color: white; /* Color de fondo suave */
+    -fx-padding: 15px;
+    -fx-border-color: #ccc;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.2), 10, 0, 0, 5); /* Sombra */
+    -fx-max-width: 320px; /* Ancho máximo del Pane */
+    -fx-max-height: 400px; /* Alto máximo del Pane */
+    -fx-alignment: top-right;
+}
+
+.cerrarNotificacion {
+    -fx-font-size: 24px;
+    -fx-text-fill: #ff5c5c; /* Color de texto rojo */
+    -fx-font-weight: bold;
+    -fx-alignment: top-right;
+    -fx-cursor: hand; /* Cursor de mano para indicar que es interactivo */
+}
+
+.cerrarNotificacion:hover {
+    -fx-text-fill: #ff0000; /* Cambia a rojo intenso al pasar el ratón */
+}
+
+
+
+.docente-item:hover {
+    -fx-background-color: #e0f7fa; /* Color de fondo al pasar el ratón */
+}
+
+/* Texto del nombre del docente */
+.docente-name {
+    -fx-font-weight: bold;
+    -fx-text-fill: #333;
+}
+
+/* Indicador de necesidad de capacitación */
+.necesita-fp, .necesita-ad {
+    -fx-font-size: 11px;
+    -fx-text-fill: #666;
+}
+/* APARTADO DE NOTIFICACIONES ------------------------------------------------------------------------------------------------------------------------------------------------- */

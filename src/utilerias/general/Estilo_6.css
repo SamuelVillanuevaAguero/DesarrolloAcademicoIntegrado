@@ -1,0 +1,180 @@
+/* Estilo para la raíz de la interfaz */  
+.root {  
+    -fx-background-color: #FFFFFF; /* Color de fondo blanco */  
+}  
+
+/* Estilo para la barra de título */  
+.hbox {  
+    -fx-background-color: #2f477a; /* Color de fondo de la barra */  
+    -fx-padding: 12px; /* Padding interno */  
+    -fx-alignment: center-right; /* Alineación */  
+}  
+
+/* Estilo para botones de título */  
+.title-button {  
+    -fx-background-color: #2f477a; /* Color de fondo */  
+    -fx-text-fill: white; /* Color del texto */  
+    -fx-font-size: 12px; /* Tamaño de fuente */  
+    -fx-font-weight: bold; /* Negrita */  
+    -fx-padding: 0 10px; /* Padding */  
+    -fx-cursor: hand; /* Cursor tipo mano */  
+}  
+
+.title-button:hover {  
+    -fx-background-color: #1d3557; /* Color al hover */  
+    -fx-border-radius: 5px; /* Bordes redondeados */  
+    -fx-background-radius: 5px; /* Bordes redondeados */  
+}  
+
+/* Estilo para botones gris */  
+.button-gris {  
+    -fx-background-color: #333333; /* Color de fondo */  
+    -fx-text-fill: white; /* Color del texto */  
+    -fx-font-size: 12px; /* Tamaño de fuente */  
+    -fx-padding: 10px 18px; /* Padding interno */  
+    -fx-border-radius: 5px; /* Bordes redondeados */  
+    -fx-background-radius: 5px; /* Bordes redondeados */  
+    -fx-cursor: hand; /* Cursor tipo mano */  
+}  
+
+.button-gris:hover {  
+    -fx-background-color: #666666; /* Color al hover */  
+}  
+
+/* Estilo para botones azul */  
+.button-azul {  
+    -fx-background-color: #2f477a; /* Color de fondo */  
+    -fx-text-fill: white; /* Color del texto */  
+    -fx-font-size: 12px; /* Tamaño de fuente */  
+    -fx-padding: 10px 18px; /* Padding interno */  
+    -fx-border-radius: 5px; /* Bordes redondeados */  
+    -fx-background-radius: 5px; /* Bordes redondeados */  
+    -fx-cursor: hand; /* Cursor tipo mano */  
+}  
+
+.button-azul:hover {  
+    -fx-background-color: #335185; /* Color al hover */  
+}  
+
+/* Estilo para etiquetas (labels) */  
+.label {  
+    -fx-text-fill: #666666; /* Color del texto */  
+    -fx-font-size: 14px; /* Tamaño de fuente */  
+}
+
+.title {
+    -fx-font-size: 48px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2f477a; /* Azul oscuro */
+    -fx-font-family: 'Monserrat', sans-serif;
+}
+
+/* Estilo para cajas de selección */  
+.choice-box, .combo-box {  
+    -fx-background-color: #d3d3d3; /* Color de fondo */  
+    -fx-border-color: #ccc; /* Color del borde */  
+    -fx-border-radius: 5px; /* Bordes redondeados */  
+    -fx-background-radius: 5px; /* Bordes redondeados */  
+    -fx-padding: 5px; /* Padding interno */  
+}  
+
+.choice-box:hover, .combo-box:hover {  
+    -fx-background-color: #c0c0c0; /* Color al hover */  
+}  
+
+/* Estilo para campos de texto */  
+.text-field {  
+    -fx-background-color: #d3d3d3; /* Color de fondo */  
+    -fx-border-color: #ccc; /* Color del borde */  
+    -fx-border-radius: 5px; /* Bordes redondeados */  
+    -fx-background-radius: 5px; /* Bordes redondeados */  
+    -fx-padding: 5px; /* Padding interno */  
+    -fx-font-size: 13px; /* Tamaño de fuente */  
+    -fx-text-fill: #333333; /* Color del texto */  
+}  
+
+.text-field:hover {  
+    -fx-background-color: #dcdcdc; /* Color al hover */  
+}  
+
+/********************************************* TABLA *******************************/
+/* Estilo para las tablas */
+.table-view {  
+    -fx-background-color: #D9D9D9; /* Color de fondo de la tabla */  
+    -fx-border-color: #c0c0c0; /* Color del borde */  
+    -fx-border-width: 1px; /* Grosor del borde */  
+}  
+
+.table-view .column-header-background {  
+    -fx-background-color: #D9D9D9; /* Color de fondo de los encabezados */  
+    -fx-border-color: #c0c0c0; /* Color de borde de encabezados */  
+    -fx-border-width: 0 0 1 0; /* Solo borde inferior */  
+}  
+
+.table-view .table-header-cell {  
+    -fx-background-color: #D9D9D9; /* Color de fondo de las celdas de encabezado */  
+    -fx-text-fill: #333; /* Color del texto de encabezado */  
+    -fx-font-weight: bold; /* Texto en negrita */  
+    -fx-padding: 10px; /* Espaciado interno */  
+}  
+
+.table-view .table-row-cell {  
+    -fx-background-color: #ffffff; /* Color de fondo de las filas */  
+    -fx-border-color: #e0e0e0; /* Color del borde de filas */  
+    -fx-border-width: 0 0 1 0; /* Solo borde inferior */  
+}  
+
+.table-view .table-row-cell:hover {  
+    -fx-background-color: #e8e8e8; /* Fondo al pasar el mouse */  
+}  
+
+.table-view .table-cell {  
+    -fx-padding: 10px; /* Espaciado interno de las celdas */  
+    -fx-text-fill: #333; /* Color del texto */  
+}  
+
+.table-view .table-cell:selected {  
+    -fx-background-color: #4a90e2; /* Color de fondo de celda seleccionada */  
+    -fx-text-fill: #ffffff; /* Color del texto de celda seleccionada */  
+}  
+
+.table-view .table-column-header {  
+    -fx-alignment: CENTER; /* Centrar el texto en encabezados */  
+}  
+
+/* Estilos para los checkboxes en la tabla */  
+.table-view .table-cell .checkbox {  
+    -fx-padding: 0; /* Eliminando padding */  
+}
+/******************************************************************************************/
+
+/* Estilo para los paneles*/
+
+/*Card actua cómo un botón (Cómo en al caso de la vista principal)*/
+.card {
+    -fx-background-color: white;
+    -fx-border-color: #DADADA;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 10px;
+    -fx-padding: 20px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 5);
+}
+
+/* Estilo para el contenedor de los datos de la tarjeta */
+.card-info {
+    -fx-background-color: white;
+    -fx-border-color: #DADADA;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 5);
+}
+
+.card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 15, 0, 0, 5);
+}
+
+.card-info:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 15, 0, 0, 5);
+}
