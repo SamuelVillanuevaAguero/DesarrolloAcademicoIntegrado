@@ -25,7 +25,6 @@ import javafx.scene.control.ScrollPane;
 //import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -197,13 +196,13 @@ public class PrincipalController implements Initializable {
     public static class Docente {
 
         String nombre;
-        boolean necesitaCapacitacionFP;
-        boolean necesitaCapacitacionAD;
+        boolean necesitaCapacitacionFD;
+        boolean necesitaCapacitacionAP;
 
-        public Docente(String nombre, boolean necesitaFP, boolean necesitaAD) {
+        public Docente(String nombre, boolean necesitaFD, boolean necesitaAP) {
             this.nombre = nombre;
-            this.necesitaCapacitacionFP = necesitaFP;
-            this.necesitaCapacitacionAD = necesitaAD;
+            this.necesitaCapacitacionFD = necesitaFD;
+            this.necesitaCapacitacionAP = necesitaAP;
         }
 
     }
@@ -234,19 +233,19 @@ public class PrincipalController implements Initializable {
                 }
                 // Leer el nombre del docente en la columna A (índice 0)
                 Cell nombreCell = row.getCell(0); // Columna A
-                Cell fpCell = row.getCell(1);     // Columna B (FP)
-                Cell adCell = row.getCell(2);     // Columna C (AD)
+                Cell fdCell = row.getCell(1);     // Columna B (FD)
+                Cell apCell = row.getCell(2);     // Columna C (AP)
 
                 // Validar que la celda del nombre no sea nula
                 if (nombreCell != null) {
                     String nombre = nombreCell.toString().trim(); // Obtener valor como String
 
-                    // Validar FP y AD, asignando "Recomendable" solo si coincide
-                    boolean necesitaFP = fpCell != null && "Recomendable".equalsIgnoreCase(fpCell.toString().trim());
-                    boolean necesitaAD = adCell != null && "Recomendable".equalsIgnoreCase(adCell.toString().trim());
+                    // Validar FD y AP, asignando "Recomendable" solo si coincide
+                    boolean necesitaFD = fdCell != null && "Recomendable".equalsIgnoreCase(fdCell.toString().trim());
+                    boolean necesitaAP = apCell != null && "Recomendable".equalsIgnoreCase(apCell.toString().trim());
 
                     // Agregar solo si se tiene un nombre válido
-                    docentes.add(new Docente(nombre, necesitaFP, necesitaAD));
+                    docentes.add(new Docente(nombre, necesitaFD, necesitaAP));
                 }
             }
         } catch (Exception e) {
@@ -267,8 +266,8 @@ public class PrincipalController implements Initializable {
 
         // Crear una entrada de notificación para cada docente
         for (Docente docente : docentesN) {
-            // **Condición para ignorar docentes sin "Recomendable" en FP o AD**
-            if (!docente.necesitaCapacitacionFP && !docente.necesitaCapacitacionAD) {
+            // **Condición para ignorar docentes sin "Recomendable" en FD o AP**
+            if (!docente.necesitaCapacitacionFD && !docente.necesitaCapacitacionAP) {
                 continue; // Saltar este docente
             }
 
@@ -283,12 +282,12 @@ public class PrincipalController implements Initializable {
 
             // Crear y añadir un Label para las necesidades de capacitación
             String necesidades = "Necesita capacitación en: ";
-            if (docente.necesitaCapacitacionFP && docente.necesitaCapacitacionAD) {
-                necesidades += "FP y AD";
-            } else if (docente.necesitaCapacitacionFP) {
-                necesidades += "FP";
-            } else if (docente.necesitaCapacitacionAD) {
-                necesidades += "AD";
+            if (docente.necesitaCapacitacionFD && docente.necesitaCapacitacionAP) {
+                necesidades += "FD y AP";
+            } else if (docente.necesitaCapacitacionFD) {
+                necesidades += "FD";
+            } else if (docente.necesitaCapacitacionAP) {
+                necesidades += "AP";
             }
 
             Label capacitacionLabel = new Label(necesidades);

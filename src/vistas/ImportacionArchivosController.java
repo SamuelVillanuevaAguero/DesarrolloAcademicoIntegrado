@@ -94,7 +94,8 @@ public class ImportacionArchivosController implements Initializable {
         String tipoFormato = comboBoxFormatos.getValue();
         if (tipoFormato.equals("Formato de hojas membretadas para reconocimientos")) {
             selectorArchivos.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Archivos PDF", "*.pdf")
+                    new FileChooser.ExtensionFilter("Archivos PDF", "*.pdf"),
+                    new FileChooser.ExtensionFilter("Archivos Word", "*.doc", "*.docx")
             );
         } else {
             selectorArchivos.getExtensionFilters().addAll(
@@ -149,35 +150,32 @@ public class ImportacionArchivosController implements Initializable {
         String carpetaPeriodo = (mesActual >= 1 && mesActual <= 7) ? "1-" + year : "2-" + year;
         String directorioImportados = directorioBase + separador + "Archivos_importados" + separador + year + separador + carpetaPeriodo;
         String directorioExportados = directorioBase + separador + "Archivos_exportados" + separador + year + separador + carpetaPeriodo;
-        String directorioSistema = directorioBase + separador + "Sistema" + separador + year + separador + carpetaPeriodo;
+        String directorioSistema = directorioBase + separador + "Sistema";
 
         // Crear directorio base
         crearDirectorio(directorioBase);
 
-        // Crear estructura de año y período
-        //crearDirectorio(directorioBase + separador + year);
+        // Crear estructura de Importados y Exportados
         crearDirectorio(directorioImportados);
         crearDirectorio(directorioExportados);
+
+        // Crear directorios de Sistema
         crearDirectorio(directorioSistema);
 
-        // Crear subdirectorios de archivos importados
-        crearDirectorio(directorioImportados + separador + "formato_de_hojas_membretadas_para_reconocimientos");
-        crearDirectorio(directorioImportados + separador + "formato_de_lista_de_asistencias");
-        crearDirectorio(directorioImportados + separador + "formato_de_reporte_para_docentes_capacitados");
-        crearDirectorio(directorioImportados + separador + "listado_de_pre_regitro_a_cursos_de_capacitacion");
-        crearDirectorio(directorioImportados + separador + "listado_de_etiquetas_de_cursos");
-        crearDirectorio(directorioImportados + separador + "listado_de_deteccion_de_necesidades");
-        crearDirectorio(directorioImportados + separador + "programa_institucional");
+        // Crear 4 directorios principales en Sistema
+        String condensadosVista = directorioSistema + separador + "condensados_vista_de_visualizacion_de_datos";
+        String informacionModificable = directorioSistema + separador + "informacion_modificable";
+        String informacionNotificaciones = directorioSistema + separador + "informacion_notificaciones";
+        String registrosContrasenas = directorioSistema + separador + "registros_contraseñas";
 
-        // Crear subdirectorios de archivos exportados
-        crearDirectorio(directorioExportados + separador + "listas_asistencia");
-        crearDirectorio(directorioExportados + separador + "reconocimientos");
-        crearDirectorio(directorioExportados + separador + "reportes_estadisticos");
+        crearDirectorio(condensadosVista);
+        crearDirectorio(informacionModificable);
+        crearDirectorio(informacionNotificaciones);
+        crearDirectorio(registrosContrasenas);
 
-        // Crear estructura de "Sistema"
-        crearDirectorio(directorioSistema + separador + "condensados_vista_de_visualizacion_de_datos");
-        crearDirectorio(directorioSistema + separador + "informacion_modificable");
-        crearDirectorio(directorioSistema + separador + "registros_contraseñas");
+        // Crear subdirectorios para condensados_vista_de_visualizacion_de_datos y informacion_notificaciones
+        crearDirectorio(condensadosVista + separador + year + separador + carpetaPeriodo);
+        crearDirectorio(informacionNotificaciones + separador + year + separador + carpetaPeriodo);
     }
 
     private void crearDirectorio(String ruta) {
