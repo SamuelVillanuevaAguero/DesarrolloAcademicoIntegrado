@@ -1,6 +1,10 @@
 package vistas;
 
+import static com.aspose.cells.PropertyType.BOOLEAN;
+import static com.aspose.cells.PropertyType.NUMBER;
+import static com.aspose.cells.PropertyType.STRING;
 import com.aspose.cells.SaveFormat;
+import static com.sun.javafx.scene.control.skin.FXVK.Type.NUMERIC;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -48,8 +52,21 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
+import java.time.temporal.ChronoField;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -338,7 +355,7 @@ public class BusquedaEstadisticaController implements Initializable {
         return setUnico.size();
     }
 
-    private int obtenerTotalDocentes(String ruta) {
+    /*private int obtenerTotalDocentes(String ruta, int año, int periodo) {
         try {
             FileInputStream file = new FileInputStream(ruta);
             Workbook libro = new XSSFWorkbook(file);
@@ -353,6 +370,33 @@ public class BusquedaEstadisticaController implements Initializable {
             Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, null, ex);
         }
         return 0;
+    }*/
+    private int obtenerTotalDocentes(String ruta, int año, int periodo) {
+        try {
+            // Abrir el archivo Excel
+            FileInputStream file = new FileInputStream(ruta);
+            Workbook libro = new XSSFWorkbook(file);
+
+            // Buscar la hoja por nombre basado en el año
+            Sheet hoja = libro.getSheet(String.valueOf(año));
+            if (hoja == null) {
+                System.err.println("No se encontró una hoja con el nombre: " + año);
+                return 0; // Salir si no se encuentra la hoja
+            }
+
+            // Leer el valor de la celda en la fila 3, columna 2 (Indexada desde 0)
+            return (int) Double.parseDouble(hoja.getRow(periodo + 2).getCell(1).toString());
+
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Archivo no encontrado: " + ruta, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Error al leer el archivo Excel", ex);
+        } catch (NullPointerException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Error: Celda o fila no encontrada", ex);
+        } catch (NumberFormatException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Error al convertir el valor de la celda a número", ex);
+        }
+        return 0; // Devolver 0 si ocurre algún error
     }
 
     private ObservableList<filaDato> readExcelData(String filePath) throws IOException {
@@ -395,7 +439,7 @@ public class BusquedaEstadisticaController implements Initializable {
         return data;
     }
 
-    private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo) {
+    /*private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo) {
         ObservableList<filaDato> data = FXCollections.observableArrayList();
         Map<String, filaDato> dataMap = new HashMap<>();
 
@@ -408,7 +452,7 @@ public class BusquedaEstadisticaController implements Initializable {
             if (periodo == 0) {
                 searchPath = Paths.get(baseDir, año.toString());
             } else {
-                searchPath = Paths.get(baseDir, año.toString(), periodo.toString());
+                searchPath = Paths.get(baseDir, año.toString(), periodo.toString()+"-"+año);
             }
         } else {
             searchPath = Paths.get(baseDir);
@@ -416,7 +460,7 @@ public class BusquedaEstadisticaController implements Initializable {
 
         try {
             Stream<Path> pathStream = Files.walk(searchPath)
-                    .filter(path -> path.toString().endsWith("Acreditacion_Docente.xlsx"));
+                    .filter(path -> path.toString().endsWith("condensado_(version_"+numeroVersion+").xlsx"));
 
             pathStream.forEach(path -> {
                 System.out.println("Hoja n");
@@ -483,14 +527,131 @@ public class BusquedaEstadisticaController implements Initializable {
         // Convertir el Map a una lista observable
         data.addAll(dataMap.values());
         return data;
+    }*/
+    private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo) {
+        ObservableList<filaDato> data = FXCollections.observableArrayList();
+        Map<String, filaDato> dataMap = new HashMap<>();
+
+        // Directorio base
+        String baseDir = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos";
+        Path searchPath;
+
+        // Construir la ruta del directorio basado en año y periodo
+        if (año != 0) {
+            if (periodo == 0) {
+                searchPath = Paths.get(baseDir, año.toString());
+            } else {
+                searchPath = Paths.get(baseDir, año.toString(), periodo + "-" + año);
+            }
+        } else {
+            searchPath = Paths.get(baseDir);
+        }
+
+        try {
+            // Filtrar archivos Excel con formato `condensado_(versionX).xlsx`
+            Stream<Path> pathStream = Files.walk(searchPath)
+                    .filter(path -> path.toString().matches(".*condensado_\\(version_\\d+\\)\\.xlsx"));
+
+            // Leer cada archivo Excel encontrado
+            pathStream.forEach(path -> {
+                System.out.println("Leyendo archivo: " + path);
+
+                try (FileInputStream file = new FileInputStream(path.toFile()); Workbook workbook = WorkbookFactory.create(file)) {
+
+                    Sheet sheet = workbook.getSheetAt(0);
+
+                    // Recorrer las filas del archivo Excel
+                    for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                        System.out.println(sheet.getLastRowNum());
+                        Row row = sheet.getRow(i);
+
+                        if (row == null) {
+                            continue;
+                        }
+
+                        // Extraer la fecha en formato `15-nov-2024` (celda de período)
+                        String periodoCell = row.getCell(1).getStringCellValue();
+                        int currentAño = 0;
+                        int currentPeriodo = 0;
+
+                        try {
+                            // Crear un formateador para fechas en formato "dd-MMM-yyyy"
+                            DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+                                    .parseCaseInsensitive()
+                                    .appendPattern("dd-MMM-yyyy")
+                                    .toFormatter(new Locale("es", "ES"))
+                                    .withResolverStyle(ResolverStyle.SMART);
+
+                            // Validar si la celda contiene datos antes de procesarla
+                            if (periodoCell == null || periodoCell.trim().isEmpty()) {
+                                System.err.println("La celda de fecha está vacía o nula. Se omite este registro.");
+                                return; // Salir del bloque si no hay una fecha válida
+                            }
+
+                            // Intentar parsear la fecha
+                            LocalDate fecha = LocalDate.parse(periodoCell.trim().toLowerCase(), formatter);
+
+                            // Extraer año y periodo
+                            currentAño = fecha.getYear();
+                            currentPeriodo = (fecha.getMonthValue() <= 7) ? 1 : 2;
+
+                        } catch (DateTimeParseException e) {
+                            // Manejo de errores para cadenas de fecha no válidas
+                            System.err.println("Error al parsear la fecha: " + periodoCell);
+                            e.printStackTrace();
+                        }
+
+                        // Validar los filtros de año y período
+                        boolean passAñoFilter = currentAño == año || año == 0;
+                        boolean passPeriodoFilter = periodo == 0 || currentPeriodo == periodo;
+
+                        if (passAñoFilter && passPeriodoFilter) {
+                            // Extraer los datos de las demás celdas
+                            String nombre = row.getCell(4).getStringCellValue();
+                            String apellidoPaterno = row.getCell(2).getStringCellValue();
+                            String apellidoMaterno = row.getCell(3).getStringCellValue();
+                            String departamento = row.getCell(7).getStringCellValue();
+                            String posgrado = row.getCell(8).getStringCellValue();
+                            String acreditado = row.getCell(13).getStringCellValue();
+                            String tipoCapacitacion = row.getCell(11).getStringCellValue();
+
+                            // Generar una clave única para el registro
+                            String key = currentAño + " " + periodoCell + " " + nombre + " " + apellidoPaterno + " " + apellidoMaterno + " " + departamento + " " + posgrado + " " + acreditado + " " + tipoCapacitacion;
+                            // Verificar si ya existe el registro en el Map
+                            if (dataMap.containsKey(key)) {
+                                // Incrementar el contador de cursos si ya existe
+                                filaDato existingDato = dataMap.get(key);
+                                existingDato.setNoCursos(existingDato.getNoCursos() + 1);
+                            } else {
+                                // Si no existe, crear un nuevo objeto filaDato con noCursos = 1
+                                filaDato newDato = new filaDato(currentAño, periodoCell, nombre,
+                                        apellidoPaterno, apellidoMaterno, departamento, posgrado,
+                                        acreditado, tipoCapacitacion, 1);
+                                dataMap.put(key, newDato);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    Logger.getLogger(BusquedaEstadisticaController.class.getName())
+                            .log(Level.SEVERE, "Error leyendo archivo: " + path, e);
+                }
+            });
+        } catch (IOException e) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName())
+                    .log(Level.SEVERE, "Error recorriendo directorio", e);
+        }
+
+        // Convertir el Map a una lista observable
+        data.addAll(dataMap.values());
+        return data;
     }
 
-    private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo, String tipoCapacitacion, String departamento, String acreditacion, String nivel) {
+    /*private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo, String tipoCapacitacion, String departamento, String acreditacion, String nivel) {
         ObservableList<filaDato> data = FXCollections.observableArrayList();
         Map<String, filaDato> dataMap = new HashMap<>();
 
         // Directorio base  
-        String baseDir = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos";
+        String baseDir = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos";
         Path searchPath;
 
         // Construir la ruta del directorio basado en año y periodo  
@@ -572,6 +733,258 @@ public class BusquedaEstadisticaController implements Initializable {
 
         data.addAll(dataMap.values());
         return data;
+    }*/
+    private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo, String tipoCapacitacion, String departamento, String acreditacion, String nivel) throws InvalidFormatException {
+        ObservableList<filaDato> data = FXCollections.observableArrayList();
+        Map<String, filaDato> dataMap = new HashMap<>();
+
+        // Directorio base
+        String baseDir = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos";
+        Path searchPath;
+
+        // Construir la ruta del directorio basado en año y periodo
+        if (año != 0) {
+            searchPath = periodo == 0 ? Paths.get(baseDir, año.toString()) : Paths.get(baseDir, año.toString(), periodo.toString() + "-" + año);
+        } else {
+            searchPath = Paths.get(baseDir);
+        }
+
+        try {
+            // Determinar el número de la versión más alta
+            String carpetaDestino = searchPath.toString();
+            int maxVersion = determinarNumeroDeVersion(carpetaDestino);
+
+            // Generar el nombre del archivo con la versión más alta
+            String archivoConMayorVersion = carpetaDestino + "\\condensado_(version_" + maxVersion + ").xlsx";
+            System.out.println(archivoConMayorVersion);
+
+            File archivo = new File(archivoConMayorVersion);
+            if (!archivo.exists()) {
+                Logger.getLogger(BusquedaEstadisticaController.class.getName())
+                        .log(Level.WARNING, "No se encontró el archivo con la versión más alta: " + archivoConMayorVersion);
+                return data; // Retornar vacío si no se encuentra el archivo
+            }
+
+            // Procesar el archivo Excel
+            try (FileInputStream file = new FileInputStream(archivo); Workbook workbook = WorkbookFactory.create(file)) {
+                Sheet sheet = workbook.getSheetAt(0); // Usamos la primera hoja del libro Excel
+
+                for (int i = 1; i <= sheet.getLastRowNum(); i++) { // Iterar desde la segunda fila
+
+                    Row row = sheet.getRow(i);
+                    if (row == null) {
+                        continue;
+                    }
+
+                    int currentAño = 0;
+                    int currentPeriodo = 0;
+                    String periodoCell = "";
+
+                    try {
+                        // Leer la celda de la fecha y parsear al formato "dd/MMM/yyyy" con meses en letras
+                        periodoCell = getCellValueAsString(row.getCell(0));
+                        System.out.println("PeriodoCell: " + periodoCell);
+
+                        if (!periodoCell.isEmpty()) {
+                            // Crear un formateador que soporte abreviaturas de meses en español
+                            //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy", Locale.forLanguageTag("es"));
+
+                            // Parsear la fecha con el formateador
+                            //LocalDate date = LocalDate.parse(periodoCell, formatter);
+                            currentAño = extraerAnio(periodoCell);
+                            currentPeriodo = extraerMes(periodoCell) < 7 ? 1 : 2; // Determinar el período
+                            System.out.println("Año: " + currentAño + " Periodo: " + currentPeriodo);
+                        }
+                    } catch (DateTimeParseException e) {
+                        Logger.getLogger(BusquedaEstadisticaController.class.getName())
+                                .log(Level.WARNING, "Error al parsear la fecha en la fila " + i + " del archivo: " + archivoConMayorVersion, e);
+                        continue; // Saltar esta fila si la fecha no es válida
+                    }
+
+                    // Validar filtros de año y período
+                    boolean passAñoFilter = currentAño == año || año == 0;
+                    boolean passPeriodoFilter = periodo == 0 || currentPeriodo == periodo;
+
+                    // Leer las celdas con los valores necesarios
+                    String filaTipoCapacitacion = getCellValueAsString(row.getCell(10));
+                    String filaDepartamento = getCellValueAsString(row.getCell(7));
+                    String filaPosgrado = getCellValueAsString(row.getCell(8));
+                    String filaAcreditacion = getCellValueAsString(row.getCell(13));
+
+                    // Validar filtros de ComboBox
+                    boolean passTipoCapacitacion = tipoCapacitacion == null || tipoCapacitacion.equals(filaTipoCapacitacion);
+                    boolean passDepartamento = departamento == null || departamento.equals(filaDepartamento);
+                    boolean passAcreditacion = acreditacion == null || acreditacion.equalsIgnoreCase(filaAcreditacion) || acreditacion.equals("Ambos");
+                    boolean passNivel = nivel == null
+                            || (nivel.equals("Licenciatura") && filaPosgrado.equalsIgnoreCase("No"))
+                            || (nivel.equals("Posgrado") && filaPosgrado.equalsIgnoreCase("Sí"));
+
+                    // Aplicar todos los filtros
+                    if (passAñoFilter && passPeriodoFilter && passTipoCapacitacion && passDepartamento && passAcreditacion && passNivel) {
+                        String nombre = getCellValueAsString(row.getCell(4));
+                        String apellidoPaterno = getCellValueAsString(row.getCell(2));
+                        String apellidoMaterno = getCellValueAsString(row.getCell(3));
+
+                        // Crear clave única para el Map
+                        String key = currentAño + " " + periodoCell + " " + nombre + " " + apellidoPaterno + " " + apellidoMaterno + " " + filaDepartamento + " " + filaPosgrado + " " + filaAcreditacion + " " + filaTipoCapacitacion;
+
+                        // Verificar si ya existe el registro en el Map
+                        if (dataMap.containsKey(key)) {
+                            filaDato existingDato = dataMap.get(key);
+                            existingDato.setNoCursos(existingDato.getNoCursos() + 1);
+                        } else {
+                            filaDato newDato = new filaDato(currentAño, periodoCell, nombre,
+                                    apellidoPaterno, apellidoMaterno, filaDepartamento, filaPosgrado,
+                                    filaAcreditacion, filaTipoCapacitacion, 1);
+                            dataMap.put(key, newDato);
+                        }
+                    }
+                }
+            }
+
+        } catch (IOException e) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Error recorriendo directorio", e);
+        }
+
+        data.addAll(dataMap.values());
+        return data;
+    }
+
+    public int extraerMes(String fecha) {
+        // Crear un mapa para convertir los nombres de los meses en números  
+        Map<String, Integer> meses = new HashMap<>();
+        meses.put("ene", 1);
+        meses.put("feb", 2);
+        meses.put("mar", 3);
+        meses.put("abr", 4);
+        meses.put("may", 5);
+        meses.put("jun", 6);
+        meses.put("jul", 7);
+        meses.put("ago", 8);
+        meses.put("sep", 9);
+        meses.put("oct", 10);
+        meses.put("nov", 11);
+        meses.put("dic", 12);
+
+        // Separar la cadena por guiones  
+        String[] partes = fecha.split("-");
+        if (partes.length != 3) {
+            throw new IllegalArgumentException("La fecha no tiene el formato correcto");
+        }
+
+        // Obtener el mes en formato de texto  
+        String mesTexto = partes[1].toLowerCase(); // Convertir a minúsculas para la búsqueda  
+
+        // Devolver el mes como número  
+        return meses.getOrDefault(mesTexto, -1); // Retorna -1 si el mes no es válido  
+    }
+
+    public static int extraerAnio(String fecha) {
+        // Separar la cadena por guiones  
+        String[] partes = fecha.split("-");
+        if (partes.length != 3) {
+            throw new IllegalArgumentException("La fecha no tiene el formato correcto");
+        }
+
+        // El año es la tercera parte  
+        try {
+            return Integer.parseInt(partes[2]); // Convertir a entero  
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("El año no es válido");
+        }
+    }
+
+    private int determinarNumeroDeVersion(String carpetaDestino) {
+        File carpeta = new File(carpetaDestino);
+
+        // Validar que la carpeta existe y es un directorio
+        if (!carpeta.exists() || !carpeta.isDirectory()) {
+            Logger.getLogger(this.getClass().getName()).log(Level.WARNING,
+                    "La ruta especificada no es válida: " + carpetaDestino);
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Ruta");
+            alert.setHeaderText(null);
+            alert.setContentText("Parece que el periodo no tiene información");
+            alert.showAndWait();
+            return 1; // Si no es un directorio válido, asumimos que es la primera versión
+        }
+
+        // Filtrar archivos que coincidan con el patrón "condensado_(version_X).xlsx"
+        File[] archivos = carpeta.listFiles((dir, name) -> name.matches("condensado_\\(version_\\d+\\)\\.xlsx"));
+
+        if (archivos == null || archivos.length == 0) {
+            return 1; // Si no hay archivos, retornamos 1 como primera versión
+        }
+
+        // Determinar la versión más alta
+        int maxVersion = 0;
+        Pattern pattern = Pattern.compile(".*\\(version_(\\d+)\\)\\.xlsx$"); // Patrón para extraer el número de versión
+
+        for (File archivo : archivos) {
+            String nombre = archivo.getName();
+            Matcher matcher = pattern.matcher(nombre);
+            if (matcher.matches()) {
+                try {
+                    int version = Integer.parseInt(matcher.group(1)); // Extraer y parsear el número de versión
+                    maxVersion = Math.max(maxVersion, version); // Comparar con la versión más alta encontrada
+                } catch (NumberFormatException e) {
+                    Logger.getLogger(this.getClass().getName()).log(Level.WARNING,
+                            "No se pudo parsear el número de versión en el archivo: " + nombre, e);
+                }
+            }
+        }
+
+        return maxVersion; // Retornar la siguiente versión disponible
+    }
+
+// Método auxiliar para obtener valores de celdas como cadenas
+    private String getCellValueAsString(Cell cell) {
+        if (cell == null) {
+            return "";
+        }
+
+        try {
+            switch (cell.getCellType()) {
+                case Cell.CELL_TYPE_STRING: // Para texto
+                    return cell.getStringCellValue();
+
+                case Cell.CELL_TYPE_NUMERIC: // Para números o fechas
+                    if (DateUtil.isCellDateFormatted(cell)) {
+                        // Si es una fecha, formatear como dd/MMM/yyyy (nov para noviembre)
+                        Date date = cell.getDateCellValue();
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MMM/yyyy", Locale.ENGLISH); // Usar inglés para abreviaturas estándar
+                        return dateFormat.format(date);
+                    } else {
+                        // Si es un número, retornar como entero si no tiene decimales
+                        double numericValue = cell.getNumericCellValue();
+                        if (numericValue == (int) numericValue) {
+                            return String.valueOf((int) numericValue);
+                        }
+                        return String.valueOf(numericValue);
+                    }
+
+                case Cell.CELL_TYPE_BOOLEAN: // Para booleanos
+                    return String.valueOf(cell.getBooleanCellValue());
+
+                case Cell.CELL_TYPE_FORMULA: // Para fórmulas
+                    try {
+                        return cell.getStringCellValue(); // Intentar leer como texto
+                    } catch (IllegalStateException e) {
+                        return String.valueOf(cell.getNumericCellValue()); // Si no, leer como numérico
+                    }
+
+                case Cell.CELL_TYPE_BLANK: // Si está en blanco
+                    return "";
+
+                default: // Cualquier otro tipo no reconocido
+                    return "";
+            }
+        } catch (Exception e) {
+            // Manejar errores generales y registrar advertencia
+            Logger.getLogger(BusquedaEstadisticaController.class.getName())
+                    .log(Level.WARNING, "Error al leer la celda: " + e.getMessage(), e);
+            return "";
+        }
     }
 
     public List<Integer> getAvailableYears(String baseDirectoryPath) {
@@ -624,11 +1037,22 @@ public class BusquedaEstadisticaController implements Initializable {
                 columnaApellidoPaterno, columnaApellidoMaterno, columnaDepartamentoLicenciatura,
                 columnaDepartamentoPosgrado, columnaAcreditado, columnaTipoCapacitacion, columnaNumeroCursos);
 
-        data = readAllExcelFiles(0, 0);
+        try {
+            Calendar calendario = Calendar.getInstance();
+            int year = calendario.get(Calendar.YEAR);
+            int mesActual = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
+            data = readAllExcelFiles(year, mesActual, null, null, null, null);
+        } catch (InvalidFormatException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
         tabla.setItems(data);
         int docentesCursos = contarFilasUnicas(data);
-        int totalDocentes = obtenerTotalDocentes(ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Sistema\\informacion_modificable\\info.xlsx");
+
+        Calendar calendario = Calendar.getInstance();
+        int year = calendario.get(Calendar.YEAR);
+        int mesActual = calendario.get(Calendar.MONTH) + 1;
+        int totalDocentes = obtenerTotalDocentes(ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\informacion_modificable\\info.xlsx", year, (mesActual >= 1 && mesActual <= 7) ? 1 : 2);
         double porcentajeCapacitados = (double) docentesCursos / totalDocentes * 100;
 
         docentesTomandoCursos.setText(String.valueOf(docentesCursos));
@@ -643,7 +1067,7 @@ public class BusquedaEstadisticaController implements Initializable {
 
         int currentYear = Year.now().getValue();
 
-        comboAño.getItems().addAll(getAvailableYears(ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos"));
+        comboAño.getItems().addAll(getAvailableYears(ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos"));
         comboPeriodo.getItems().addAll("Enero - Julio", "Agosto - Diciembre");
         comboFormato.getItems().addAll("PDF", "EXCEL");
 
@@ -686,7 +1110,7 @@ public class BusquedaEstadisticaController implements Initializable {
         botonBuscar.setOnMouseClicked(event -> {
             System.out.println("Botón buscar...");
 
-            String tipoCapacitacion = comboTipoCapacitacion.getValue().equals("Formación docente") ? "FD" : "AP";
+            String tipoCapacitacion = comboTipoCapacitacion.getValue() == null ? null : comboTipoCapacitacion.getValue().equals("Formación docente") ? "FD" : "AP";
 
             String departamento = comboDepartamento.getValue();
             String acreditacion = comboAcreditacion.getValue();
@@ -696,15 +1120,19 @@ public class BusquedaEstadisticaController implements Initializable {
             int periodo = comboPeriodo.getValue() != null
                     ? comboPeriodo.getValue().equals("Enero - Julio") ? 1 : 2 : 0;
 
-            // Llamar al método readAllExcelFiles pasando todos los filtros
-            data = readAllExcelFiles(año, periodo, tipoCapacitacion, departamento, acreditacion, nivel);
+            try {
+                // Llamar al método readAllExcelFiles pasando todos los filtros
+                data = readAllExcelFiles(año, periodo, tipoCapacitacion, departamento, acreditacion, nivel);
+            } catch (InvalidFormatException ex) {
+                Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, null, ex);
+            }
             tabla.setItems(data);
             docentesTomandoCursos.setText("" + contarFilasUnicas(data));
 
         });
 
         botonExportar.setOnMouseClicked(event -> {
-            String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Sistema\\informacion_modificable\\reporte.xlsx";
+            String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\informacion_modificable\\reporte.xlsx";
 
             switch (comboFormato.getValue() == null ? "default" : comboFormato.getValue()) {
                 case "PDF":

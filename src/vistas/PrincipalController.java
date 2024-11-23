@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -22,7 +23,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-//import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
@@ -165,7 +165,10 @@ public class PrincipalController implements Initializable {
         });
 
         // Ruta del archivo Excel
-        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_cursos\\Archivos_importados\\2024\\2-2024\\docentesRecomendable.xlsx";
+        Calendar calendario = Calendar.getInstance();
+        int year = calendario.get(Calendar.YEAR);
+        int mesActual = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
+        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_cursos\\Sistema\\informacion_notificaciones\\" + year + "\\" + mesActual + "-2024\\docentesRecomendable.xlsx";
 
         // Leer docentes que necesitan capacitación
         List<Docente> docentes = leerDocentesConNecesidadDeCapacitacion(rutaArchivo);
@@ -258,7 +261,10 @@ public class PrincipalController implements Initializable {
 
     // Método para leer los datos de docentes y generar las notificaciones en VBox
     public void generarNotificacionesEnVBox() {
-        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_cursos\\Archivos_importados\\2024\\2-2024\\docentesRecomendable.xlsx";
+        Calendar calendario = Calendar.getInstance();
+        int year = calendario.get(Calendar.YEAR);
+        int mesActual = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
+        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_cursos\\Sistema\\informacion_notificaciones\\" + year + "\\" + mesActual + "-2024\\docentesRecomendable.xlsx";
         List<Docente> docentesN = leerDocentesConNecesidadDeCapacitacion(rutaArchivo);
 
         // Limpiar el VBox antes de agregar nuevas notificaciones (para evitar duplicados si se llama varias veces)
@@ -267,6 +273,7 @@ public class PrincipalController implements Initializable {
         // Crear una entrada de notificación para cada docente
         for (Docente docente : docentesN) {
             // *Condición para ignorar docentes sin "Recomendable" en FD o AP*
+
             if (!docente.necesitaCapacitacionFD && !docente.necesitaCapacitacionAP) {
                 continue; // Saltar este docente
             }

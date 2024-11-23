@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,33 +184,33 @@ public class ExportacionReconocimientosController implements Initializable {
 
     @FXML
     private void exportarReconocimientos(ActionEvent event) throws IOException {
-         ExcelReader excelReader = new ExcelReader();
-    List<String> nombresDocentes = excelReader.obtenerNombresCompletos(); // Lista de docentes
+        ExcelReader excelReader = new ExcelReader();
+        List<String> nombresDocentes = excelReader.obtenerNombresCompletos(); // Lista de docentes
 
-    String rutaPlantilla = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\FORMATO-RECONOCIMIENTO-JUNIO-2024 (1).docx";
-    String directorioSalida = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Exportaciones\\";
-    String horasCurso = txtHoras.getValue(); // Horas del curso
-    String formatoSeleccionado = txtFormatos.getValue(); // Formato: PDF, Word o Ambos
+        String rutaPlantilla = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\FORMATO-RECONOCIMIENTO-JUNIO-2024 (1).docx";
+        String directorioSalida = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Exportaciones\\";
+        String horasCurso = txtHoras.getValue(); // Horas del curso
+        String formatoSeleccionado = txtFormatos.getValue(); // Formato: PDF, Word o Ambos
 
-    if (nombresDocentes.isEmpty() || horasCurso == null || formatoSeleccionado == null) {
-        Alert alerta = new Alert(Alert.AlertType.WARNING, "Por favor, asegúrate de que los datos del curso y los nombres estén completos.");
-        alerta.showAndWait();
-        return;
-    }
-
-    for (String nombreDocente : nombresDocentes) {
-        Map<String, String> datosReconocimiento = new HashMap<>();
-        datosReconocimiento.put("NOMBRE_COMPLETO", nombreDocente);
-        datosReconocimiento.put("HORAS_CURSO", horasCurso);
-        String archivoWordGenerado = generarDocumentoWord(rutaPlantilla, directorioSalida, datosReconocimiento, nombreDocente);
-        if (formatoSeleccionado.equals("PDF") || formatoSeleccionado.equals("Ambos")) {
-            convertirWordAPDF(archivoWordGenerado);
+        if (nombresDocentes.isEmpty() || horasCurso == null || formatoSeleccionado == null) {
+            Alert alerta = new Alert(Alert.AlertType.WARNING, "Por favor, asegúrate de que los datos del curso y los nombres estén completos.");
+            alerta.showAndWait();
+            return;
         }
-        System.out.println("Reconocimiento generado para: " + nombreDocente);
-    }
 
-    Alert exito = new Alert(Alert.AlertType.INFORMATION, "¡Reconocimientos exportados con éxito!");
-    exito.showAndWait();
+        for (String nombreDocente : nombresDocentes) {
+            Map<String, String> datosReconocimiento = new HashMap<>();
+            datosReconocimiento.put("NOMBRE_COMPLETO", nombreDocente);
+            datosReconocimiento.put("HORAS_CURSO", horasCurso);
+            String archivoWordGenerado = generarDocumentoWord(rutaPlantilla, directorioSalida, datosReconocimiento, nombreDocente);
+            if (formatoSeleccionado.equals("PDF") || formatoSeleccionado.equals("Ambos")) {
+                convertirWordAPDF(archivoWordGenerado);
+            }
+            System.out.println("Reconocimiento generado para: " + nombreDocente);
+        }
+
+        Alert exito = new Alert(Alert.AlertType.INFORMATION, "¡Reconocimientos exportados con éxito!");
+        exito.showAndWait();
 
     }
 
@@ -304,62 +305,62 @@ public class ExportacionReconocimientosController implements Initializable {
         FileOutputStream fos = null;
         XWPFDocument documento = null;
 
-         try {
-        // Abrir la plantilla
-        fis = new FileInputStream(rutaPlantilla);
-        documento = new XWPFDocument(fis);
+        try {
+            // Abrir la plantilla
+            fis = new FileInputStream(rutaPlantilla);
+            documento = new XWPFDocument(fis);
 
-        // Reemplazar marcadores en los párrafos
-        for (XWPFParagraph parrafo : documento.getParagraphs()) {
-            reemplazarMarcadoresEnParrafo(parrafo, datos);
-        }
+            // Reemplazar marcadores en los párrafos
+            for (XWPFParagraph parrafo : documento.getParagraphs()) {
+                reemplazarMarcadoresEnParrafo(parrafo, datos);
+            }
 
-        // Reemplazar marcadores en las tablas
-        for (XWPFTable tabla : documento.getTables()) {
-            for (XWPFTableRow fila : tabla.getRows()) {
-                for (XWPFTableCell celda : fila.getTableCells()) {
-                    for (XWPFParagraph parrafo : celda.getParagraphs()) {
-                        reemplazarMarcadoresEnParrafo(parrafo, datos);
+            // Reemplazar marcadores en las tablas
+            for (XWPFTable tabla : documento.getTables()) {
+                for (XWPFTableRow fila : tabla.getRows()) {
+                    for (XWPFTableCell celda : fila.getTableCells()) {
+                        for (XWPFParagraph parrafo : celda.getParagraphs()) {
+                            reemplazarMarcadoresEnParrafo(parrafo, datos);
+                        }
                     }
                 }
             }
-        }
 
-        // Guardar el archivo generado
-        String rutaArchivoGenerado = directorioSalida + "Reconocimiento_" + datos.get("nombreDocente") + ".docx";
-        fos = new FileOutputStream(rutaArchivoGenerado);
-        documento.write(fos);
+            // Guardar el archivo generado
+            String rutaArchivoGenerado = directorioSalida + "Reconocimiento_" + datos.get("nombreDocente") + ".docx";
+            fos = new FileOutputStream(rutaArchivoGenerado);
+            documento.write(fos);
 
-        return rutaArchivoGenerado; // Devolver la ruta del archivo generado
-    } finally {
-        // Cerrar recursos manualmente
-        if (fos != null) {
-            fos.close();
-        }
-        if (fis != null) {
-            fis.close();
+            return rutaArchivoGenerado; // Devolver la ruta del archivo generado
+        } finally {
+            // Cerrar recursos manualmente
+            if (fos != null) {
+                fos.close();
+            }
+            if (fis != null) {
+                fis.close();
+            }
         }
     }
-    }
-    
+
     private void reemplazarMarcadoresEnParrafo(XWPFParagraph parrafo, Map<String, String> datos) {
-    List<XWPFRun> runs = parrafo.getRuns();
-    if (runs != null) {
-        for (XWPFRun run : runs) {
-            String texto = run.getText(0);
-            if (texto != null) {
-                // Reemplazar cada marcador en el texto
-                for (Map.Entry<String, String> entrada : datos.entrySet()) {
-                    String marcador = "{" + entrada.getKey() + "}";
-                    if (texto.contains(marcador)) {
-                        texto = texto.replace(marcador, entrada.getValue());
+        List<XWPFRun> runs = parrafo.getRuns();
+        if (runs != null) {
+            for (XWPFRun run : runs) {
+                String texto = run.getText(0);
+                if (texto != null) {
+                    // Reemplazar cada marcador en el texto
+                    for (Map.Entry<String, String> entrada : datos.entrySet()) {
+                        String marcador = "{" + entrada.getKey() + "}";
+                        if (texto.contains(marcador)) {
+                            texto = texto.replace(marcador, entrada.getValue());
+                        }
                     }
+                    run.setText(texto, 0); // Actualizar el texto en el run
                 }
-                run.setText(texto, 0); // Actualizar el texto en el run
             }
         }
     }
-}
 
 // Método para convertir un archivo Word a PDF
     private String convertirWordAPDF(String rutaArchivoWord) {
@@ -392,14 +393,17 @@ public class ExportacionReconocimientosController implements Initializable {
             return null;
         }
     }
-        
 
     class ExcelReader {
 
-        private static final String ETIQUETAS_PATH = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Etiquetas_Cursos_2024.xlsx";
-        private static final String PROG_INSTITUCIONAL_PATH = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\PROG-INSTITUCIONAL-ENERO-2023.xlsx";
+        Calendar calendario = Calendar.getInstance();
+        int year = calendario.get(Calendar.YEAR);
+        int mesActual = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
+        private String ETIQUETAS_PATH = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\"+year+"\\"+mesActual+"-2024\\listado_de_etiquetas_de_cursos\\listado_(Semana_1).xlsx";
+        private String PROG_INSTITUCIONAL_PATH = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\"+year+"\\"+mesActual+"-2024\\programa_institucional\\programa_institucional_(Semana_2).xlsx";
+        
 
-        private static final String NUEVO_EXCEL_PATH = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\EjemploDeExportacion.xlsx";
+        private static final String NUEVO_EXCEL_PATH = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\EjemploDeExportacion.xlsx";
 
         // Método para obtener nombres completos del nuevo Excel
         public List<String> obtenerNombresCompletos() throws IOException {
@@ -456,8 +460,11 @@ public class ExportacionReconocimientosController implements Initializable {
         // Método para buscar detalles del curso en el archivo "Prog-Institucional"
         public Map<String, String> buscarDetallesCurso(String nombreCurso) throws IOException {
             Map<String, String> datosCurso = new HashMap<>();
+            Calendar calendario = Calendar.getInstance();
+            int year = calendario.get(Calendar.YEAR);
+            int mesActual = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
 
-            try (FileInputStream file = new FileInputStream(ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\PROG-INSTITUCIONAL-ENERO-2023.xlsx")) {
+            try (FileInputStream file = new FileInputStream(ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\" + year + "\\" + mesActual + "-2024\\programa_institucional\\programa_institucional_(Semana_2).xlsx")) {
                 Workbook workbook = new XSSFWorkbook(file);
                 Sheet sheet = workbook.getSheetAt(0);
 

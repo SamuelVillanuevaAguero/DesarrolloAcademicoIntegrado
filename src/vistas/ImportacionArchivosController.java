@@ -69,10 +69,10 @@ public class ImportacionArchivosController implements Initializable {
         selectorArchivos.setTitle("Seleccionar archivo");
         selectorArchivos.setInitialDirectory(new File(System.getProperty("user.home")));
         selectorArchivos.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Todos los archivos", "*.xlsx", "*.xls"),
+                new FileChooser.ExtensionFilter("Todos los archivos", ".xlsx", ".xls"),
                 //new FileChooser.ExtensionFilter("PDF", "*.pdf"),
-                new FileChooser.ExtensionFilter("Excel", "*.xlsx", "*.xls")
-        //new FileChooser.ExtensionFilter("Word", "*.doc", "*.docx")
+                new FileChooser.ExtensionFilter("Excel", ".xlsx", ".xls")
+        //new FileChooser.ExtensionFilter("Word", ".doc", ".docx")
         );
 
         programaCapacitacion = selectorArchivos.showOpenDialog(botonPC.getScene().getWindow());
@@ -94,11 +94,12 @@ public class ImportacionArchivosController implements Initializable {
         String tipoFormato = comboBoxFormatos.getValue();
         if (tipoFormato.equals("Formato de hojas membretadas para reconocimientos")) {
             selectorArchivos.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Archivos PDF", "*.pdf")
+                    new FileChooser.ExtensionFilter("Archivos PDF", "*.pdf"),
+                    new FileChooser.ExtensionFilter("Archivos Word", ".doc", ".docx")
             );
         } else {
             selectorArchivos.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Archivos Excel", "*.xlsx", "*.xls")
+                    new FileChooser.ExtensionFilter("Archivos Excel", ".xlsx", ".xls")
             );
         }
 
@@ -118,7 +119,7 @@ public class ImportacionArchivosController implements Initializable {
         selectorArchivos.setTitle("Seleccionar archivo");
         selectorArchivos.setInitialDirectory(new File(System.getProperty("user.home")));
         selectorArchivos.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Archivos Excel", "*.xlsx", "*.xls")
+                new FileChooser.ExtensionFilter("Archivos Excel", ".xlsx", ".xls")
         );
 
         listado = selectorArchivos.showOpenDialog(botonPC.getScene().getWindow());
@@ -138,7 +139,7 @@ public class ImportacionArchivosController implements Initializable {
     private void inicializarEstructuraDirectorios() {
         String directorioUsuario = System.getProperty("user.home");
         String separador = File.separator;
-        String directorioBase = directorioUsuario + separador + "Desktop" + separador + "Gestion_de_Cursos";
+        String directorioBase = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos";
 
         // Obtener año actual
         Calendar calendario = Calendar.getInstance();
@@ -149,16 +150,14 @@ public class ImportacionArchivosController implements Initializable {
         String carpetaPeriodo = (mesActual >= 1 && mesActual <= 7) ? "1-" + year : "2-" + year;
         String directorioImportados = directorioBase + separador + "Archivos_importados" + separador + year + separador + carpetaPeriodo;
         String directorioExportados = directorioBase + separador + "Archivos_exportados" + separador + year + separador + carpetaPeriodo;
-        String directorioSistema = directorioBase + separador + "Sistema" + separador + year + separador + carpetaPeriodo;
+        String directorioSistema = directorioBase + separador + "Sistema";
 
         // Crear directorio base
         crearDirectorio(directorioBase);
 
-        // Crear estructura de año y período
-        //crearDirectorio(directorioBase + separador + year);
+        // Crear estructura de Importados y Exportados
         crearDirectorio(directorioImportados);
         crearDirectorio(directorioExportados);
-        crearDirectorio(directorioSistema);
 
         // Crear subdirectorios de archivos importados
         crearDirectorio(directorioImportados + separador + "formato_de_hojas_membretadas_para_reconocimientos");
@@ -174,10 +173,23 @@ public class ImportacionArchivosController implements Initializable {
         crearDirectorio(directorioExportados + separador + "reconocimientos");
         crearDirectorio(directorioExportados + separador + "reportes_estadisticos");
 
-        // Crear estructura de "Sistema"
-        crearDirectorio(directorioSistema + separador + "condensados_vista_de_visualizacion_de_datos");
-        crearDirectorio(directorioSistema + separador + "informacion_modificable");
-        crearDirectorio(directorioSistema + separador + "registros_contraseñas");
+        // Crear directorios de Sistema
+        crearDirectorio(directorioSistema);
+
+        // Crear 4 directorios principales en Sistema
+        String condensadosVista = directorioSistema + separador + "condensados_vista_de_visualizacion_de_datos";
+        String informacionModificable = directorioSistema + separador + "informacion_modificable";
+        String informacionNotificaciones = directorioSistema + separador + "informacion_notificaciones";
+        String registrosContrasenas = directorioSistema + separador + "registros_contraseñas";
+
+        crearDirectorio(condensadosVista);
+        crearDirectorio(informacionModificable);
+        crearDirectorio(informacionNotificaciones);
+        crearDirectorio(registrosContrasenas);
+
+        // Crear subdirectorios para condensados_vista_de_visualizacion_de_datos y informacion_notificaciones
+        crearDirectorio(condensadosVista + separador + year + separador + carpetaPeriodo);
+        crearDirectorio(informacionNotificaciones + separador + year + separador + carpetaPeriodo);
     }
 
     private void crearDirectorio(String ruta) {
@@ -203,7 +215,7 @@ public class ImportacionArchivosController implements Initializable {
                 : "2-" + year;
 
         // Ruta base para archivos importados
-        String directorioBase = directorioUsuario + separador + "Desktop" + separador + "Gestion_de_Cursos";
+        String directorioBase = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos";
         String directorioImportados = directorioBase + separador + "Archivos_importados"
                 + separador + year + separador + carpetaPeriodo;
 
