@@ -228,14 +228,14 @@ public class RespaldoController implements Initializable {
             // Configurar los filtros de extensión según la selección
             FileChooser.ExtensionFilter selectedFilter;
             if (opcionZIP.isSelected()) {
-                selectedFilter = new FileChooser.ExtensionFilter("Archivo ZIP (.zip)", ".zip");
+                selectedFilter = new FileChooser.ExtensionFilter("Archivo ZIP (*.zip)", "*.zip");
             } else {
-                selectedFilter = new FileChooser.ExtensionFilter("Archivo RAR (.rar)", ".rar");
+                selectedFilter = new FileChooser.ExtensionFilter("Archivo RAR (*.rar)", "*.rar");
             }
 
             fileChooser.getExtensionFilters().add(selectedFilter);
             fileChooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("Todos los archivos (.)", ".")
+                    new FileChooser.ExtensionFilter("Todos los archivos (*.*)", "*.*")
             );
 
             fileChooser.setSelectedExtensionFilter(selectedFilter);
@@ -267,8 +267,8 @@ public class RespaldoController implements Initializable {
             fileChooser.setInitialDirectory(ultimaUbicacion);
 
             fileChooser.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Archivos de respaldo", ".zip", ".rar"),
-                    new FileChooser.ExtensionFilter("Todos los archivos (.)", ".")
+                    new FileChooser.ExtensionFilter("Archivos de respaldo", "*.zip", "*.rar"),
+                    new FileChooser.ExtensionFilter("Todos los archivos (*.*)", "*.*")
             );
 
             File selectedFile = fileChooser.showOpenDialog(null);
