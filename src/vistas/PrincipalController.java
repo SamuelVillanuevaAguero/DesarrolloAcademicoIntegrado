@@ -12,7 +12,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -23,8 +22,10 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+//import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -165,20 +166,17 @@ public class PrincipalController implements Initializable {
         });
 
         // Ruta del archivo Excel
-        Calendar calendario = Calendar.getInstance();
-        int year = calendario.get(Calendar.YEAR);
-        int mesActual = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
-        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_cursos\\Sistema\\informacion_notificaciones\\" + year + "\\" + mesActual + "-2024\\docentesRecomendable.xlsx";
+        String rutaArchivo = "C:\\Users\\sebas\\OneDrive\\Escritorio\\Arhicvos Prueba\\Gestion_de_curso\\Archivos_importados\\Año\\Periodo\\docentesRecomendable.xlsx";
 
         // Leer docentes que necesitan capacitación
         List<Docente> docentes = leerDocentesConNecesidadDeCapacitacion(rutaArchivo);
 
-        // Configurar el botón de notificación para mostrar el notificationPane
+        // Configurar el botón de notificación para mostrar el `notificationPane`
         notification.setOnMouseClicked(event -> {
             notificationPane.setVisible(true);
         });
 
-        // Configurar el botón para cerrar el notificationPane
+        // Configurar el botón para cerrar el `notificationPane`
         cerrarNotificacion.setOnMouseClicked(event -> {
             notificationPane.setVisible(false);
         });
@@ -202,10 +200,10 @@ public class PrincipalController implements Initializable {
         boolean necesitaCapacitacionFD;
         boolean necesitaCapacitacionAP;
 
-        public Docente(String nombre, boolean necesitaFD, boolean necesitaAP) {
+        public Docente(String nombre, boolean necesitaFP, boolean necesitaAD) {
             this.nombre = nombre;
-            this.necesitaCapacitacionFD = necesitaFD;
-            this.necesitaCapacitacionAP = necesitaAP;
+            this.necesitaCapacitacionFD = necesitaFP;
+            this.necesitaCapacitacionAP = necesitaAD;
         }
 
     }
@@ -236,19 +234,19 @@ public class PrincipalController implements Initializable {
                 }
                 // Leer el nombre del docente en la columna A (índice 0)
                 Cell nombreCell = row.getCell(0); // Columna A
-                Cell fdCell = row.getCell(1);     // Columna B (FD)
-                Cell apCell = row.getCell(2);     // Columna C (AP)
+                Cell fpCell = row.getCell(1);     // Columna B (FP)
+                Cell adCell = row.getCell(2);     // Columna C (AD)
 
                 // Validar que la celda del nombre no sea nula
                 if (nombreCell != null) {
                     String nombre = nombreCell.toString().trim(); // Obtener valor como String
 
-                    // Validar FD y AP, asignando "Recomendable" solo si coincide
-                    boolean necesitaFD = fdCell != null && "Recomendable".equalsIgnoreCase(fdCell.toString().trim());
-                    boolean necesitaAP = apCell != null && "Recomendable".equalsIgnoreCase(apCell.toString().trim());
+                    // Validar FP y AD, asignando "Recomendable" solo si coincide
+                    boolean necesitaFP = fpCell != null && "Recomendable".equalsIgnoreCase(fpCell.toString().trim());
+                    boolean necesitaAD = adCell != null && "Recomendable".equalsIgnoreCase(adCell.toString().trim());
 
                     // Agregar solo si se tiene un nombre válido
-                    docentes.add(new Docente(nombre, necesitaFD, necesitaAP));
+                    docentes.add(new Docente(nombre, necesitaFP, necesitaAD));
                 }
             }
         } catch (Exception e) {
@@ -261,10 +259,7 @@ public class PrincipalController implements Initializable {
 
     // Método para leer los datos de docentes y generar las notificaciones en VBox
     public void generarNotificacionesEnVBox() {
-        Calendar calendario = Calendar.getInstance();
-        int year = calendario.get(Calendar.YEAR);
-        int mesActual = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
-        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_cursos\\Sistema\\informacion_notificaciones\\" + year + "\\" + mesActual + "-2024\\docentesRecomendable.xlsx";
+        String rutaArchivo = "C:\\Users\\sebas\\OneDrive\\Escritorio\\Arhicvos Prueba\\Gestion_de_curso\\Archivos_importados\\Año\\Periodo\\docentesRecomendable.xlsx";
         List<Docente> docentesN = leerDocentesConNecesidadDeCapacitacion(rutaArchivo);
 
         // Limpiar el VBox antes de agregar nuevas notificaciones (para evitar duplicados si se llama varias veces)
@@ -272,8 +267,7 @@ public class PrincipalController implements Initializable {
 
         // Crear una entrada de notificación para cada docente
         for (Docente docente : docentesN) {
-            // *Condición para ignorar docentes sin "Recomendable" en FD o AP*
-
+            // **Condición para ignorar docentes sin "Recomendable" en FP o AD**
             if (!docente.necesitaCapacitacionFD && !docente.necesitaCapacitacionAP) {
                 continue; // Saltar este docente
             }
@@ -310,10 +304,10 @@ public class PrincipalController implements Initializable {
         notificacioneBox.setPrefHeight(Control.USE_COMPUTED_SIZE);
         notificacioneBox.requestLayout();
 
-        // Obtener el número total de nodos dentro del VBox notificacioneBox
+        // Obtener el número total de nodos dentro del VBox `notificacioneBox`
         int totalNodos = notificacioneBox.getChildren().size();
 
-        // Condición para mostrar el imageView (icono de notificación)
+        // Condición para mostrar el `imageView` (icono de notificación)
         if (totalNodos >= 1) {
             notiAlert.setVisible(true);
         } else {
@@ -321,8 +315,8 @@ public class PrincipalController implements Initializable {
         }
 
         // Ajustes del ScrollPane para desplazarse verticalmente
-        scrollBox.setContent(notificacioneBox); // Asegúrate de que notificacioneBox esté dentro del ScrollPane
-        scrollBox.setFitToWidth(true); // Ajustar el ancho del contenido al ScrollPane
+        scrollBox.setContent(notificacioneBox); // Asegúrate de que `notificacioneBox` esté dentro del `ScrollPane`
+        scrollBox.setFitToWidth(true); // Ajustar el ancho del contenido al `ScrollPane`
         scrollBox.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // No permitir desplazamiento horizontal
         scrollBox.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED); // Mostrar barra de desplazamiento vertical según sea necesario
         scrollBox.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
