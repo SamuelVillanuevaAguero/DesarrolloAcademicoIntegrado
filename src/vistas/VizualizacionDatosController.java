@@ -1,5 +1,7 @@
 package vistas;
 
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.*;
 import java.io.File;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -9,15 +11,19 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javafx.application.Application;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -37,6 +43,7 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
@@ -48,17 +55,12 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-import org.apache.poi.ss.usermodel.BorderStyle;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.openxml4j.exceptions.*;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.*;
 import utilerias.general.ControladorGeneral;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.util.CellReference;
 
 public class VizualizacionDatosController implements Initializable {
 
@@ -92,7 +94,7 @@ public class VizualizacionDatosController implements Initializable {
                 Logger.getLogger(VizualizacionDatosController.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
-        
+
         campoBusqueda.setOnKeyReleased(event -> {
             Buscar();
         });
@@ -221,17 +223,17 @@ public class VizualizacionDatosController implements Initializable {
             Calendar calendario = Calendar.getInstance();
             int año = calendario.get(Calendar.YEAR);
             int periodo = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
-            
-            String rutaArchivoEventos = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\listado_de_pre_regitro_a_cursos_de_capacitacion\\";
+
+            String rutaArchivoEventos = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\" + año + "\\" + periodo + "-" + año + "\\listado_de_pre_regitro_a_cursos_de_capacitacion\\";
             int numeroSemana = obtenerUltimaSemana(rutaArchivoEventos, "listado\\_\\(Semana_\\d+\\)\\.xlsx", "Semana");
-            rutaArchivoEventos += "listado_(Semana_"+numeroSemana+").xlsx";
+            rutaArchivoEventos += "listado_(Semana_" + numeroSemana + ").xlsx";
             System.out.println(rutaArchivoEventos);
-            
-            String rutaArchivoClasificaciones = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\programa_institucional\\"; // Asegúrate de poner la ruta correcta de tu archivo de clasificaciones
+
+            String rutaArchivoClasificaciones = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\" + año + "\\" + periodo + "-" + año + "\\programa_institucional\\"; // Asegúrate de poner la ruta correcta de tu archivo de clasificaciones
             numeroSemana = obtenerUltimaSemana(rutaArchivoClasificaciones, "programa_institucional\\_\\(Semana_\\d+\\)\\.xlsx", "Semana");
-            rutaArchivoClasificaciones += "programa_institucional_(Semana_"+numeroSemana+").xlsx";
+            rutaArchivoClasificaciones += "programa_institucional_(Semana_" + numeroSemana + ").xlsx";
             System.out.println(rutaArchivoClasificaciones);
-            
+
             // Llamar al método para leer los eventos y las clasificaciones
             eventoList.addAll(leerEventosDesdeExcel(rutaArchivoEventos, rutaArchivoClasificaciones));
 
@@ -243,7 +245,7 @@ public class VizualizacionDatosController implements Initializable {
             mostrarAlerta("Error", "No se pudieron cargar los datos del archivo Excel.", AlertType.ERROR);
         }
     }
-    
+
     public int obtenerUltimaSemana(String carpetaDestino, String nombreArchivo, String versionS) {
         File carpeta = new File(carpetaDestino);
 
@@ -268,7 +270,7 @@ public class VizualizacionDatosController implements Initializable {
 
         // Determinar la versión más alta
         int maxVersion = 0;
-        Pattern pattern = Pattern.compile(".*\\("+versionS+"_(\\d+)\\)\\.xlsx$"); // Patrón para extraer el número de versión
+        Pattern pattern = Pattern.compile(".*\\(" + versionS + "_(\\d+)\\)\\.xlsx$"); // Patrón para extraer el número de versión
 
         for (File archivo : archivos) {
             String nombre = archivo.getName();
@@ -286,121 +288,361 @@ public class VizualizacionDatosController implements Initializable {
 
         return maxVersion; // Retornar la siguiente versión disponible
     }
- 
+
+// Método auxiliar para limpiar texto
+    private String limpiarTextoInicial(String texto) {
+        if (texto == null || texto.isEmpty()) {
+            return "";
+        }
+        // Elimina el patrón "número." del inicio del texto y elimina espacios extras
+        return texto.replaceFirst("^\\d+\\.s*", "").trim();
+    }
+
     @FXML
     private void Exportar(ActionEvent event) {
-        // Crear un FileChooser para seleccionar dónde guardar el archivo
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Guardar archivo Excel");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos Excel", "*.xlsx"));
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Buscar Curso");
+        dialog.setHeaderText("Ingrese el nombre del curso a exportar:");
+        dialog.setContentText("Nombre del curso:");
 
-        // Abrir el diálogo de guardar
-        File file = fileChooser.showSaveDialog(null);
-        if (file != null) {
-            try (Workbook workbook = new XSSFWorkbook()) {
-                // Crear una hoja en el archivo Excel
-                Sheet sheet = workbook.createSheet("Lista de Asistencia");
-
-                // Crear estilo para los encabezados
-                CellStyle headerStyle = workbook.createCellStyle();
-                Font font = workbook.createFont();
-                font.setBold(true);
-                headerStyle.setFont(font);
-                headerStyle.setAlignment(CellStyle.ALIGN_LEFT);
-
-                // Crear estilo para bordes
-                CellStyle borderStyle = workbook.createCellStyle();
-                borderStyle.setBorderBottom(CellStyle.BORDER_THIN);
-                borderStyle.setBorderTop(CellStyle.BORDER_THIN);
-                borderStyle.setBorderLeft(CellStyle.BORDER_THIN);
-                borderStyle.setBorderRight(CellStyle.BORDER_THIN);
-
-                // Extraer los datos dinámicos de la tabla
-                Evento ejemplo = tableView.getItems().get(0); // Obtener el primer elemento como referencia
-                String curso = ejemplo.getNombreEvento(); // Nombre del curso
-                String facilitador = ejemplo.getNombreFacilitador(); // Nombre del facilitador
-                String periodo = ejemplo.getPeriodo(); // Período
-
-                // Sección de encabezado (ajustando posiciones)
-                Row headerRow1 = sheet.createRow(4);
-                headerRow1.createCell(1).setCellValue("NOMBRE DEL EVENTO:");
-                headerRow1.createCell(2).setCellValue(curso); // Movido a columna C
-                headerRow1.createCell(6).setCellValue("DURACIÓN:");
-                headerRow1.createCell(9).setCellValue("HORARIO:");
-
-                Row headerRow2 = sheet.createRow(5);
-                headerRow2.createCell(1).setCellValue("NOMBRE DEL FACILITADOR (A):");
-                headerRow2.createCell(2).setCellValue(facilitador); // Movido a columna C
-                headerRow2.createCell(6).setCellValue("TIPO:");
-
-                Row headerRow3 = sheet.createRow(6);
-                headerRow3.createCell(1).setCellValue("PERIODO:");
-                headerRow3.createCell(2).setCellValue(periodo); // Movido a columna C
-                headerRow3.createCell(6).setCellValue("SEDE:");
-
-                // Crear encabezados de tabla
-                Row tableHeaderRow = sheet.createRow(8);
-                String[] headers = {"No.", "NOMBRE DEL PARTICIPANTE", "R.F.C", "PUESTO Y DEPARTAMENTO DE ADSCRIPCIÓN",
-                    "H", "M", "PUESTO TIPO", "ASISTENCIA", "CALIFICACIÓN"};
-                for (int i = 0; i < headers.length; i++) {
-                    Cell cell = tableHeaderRow.createCell(i);
-                    cell.setCellValue(headers[i]);
-                    cell.setCellStyle(headerStyle);
-                }
-
-                // Obtener datos de la tabla y agregarlos al Excel
-                List<Evento> participantes = tableView.getItems();
-                int rowIndex = 9; // Comenzar en la fila 10
-                for (int i = 0; i < participantes.size(); i++) {
-                    Evento participante = participantes.get(i);
-                    Row row = sheet.createRow(rowIndex++);
-
-                    // Llenar datos
-                    row.createCell(0).setCellValue(i + 1); // Número
-                    row.createCell(1).setCellValue(participante.getNombres()); // Nombre del participante
-                    row.createCell(2).setCellValue(participante.getRfc()); // RFC
-                    row.createCell(3).setCellValue(participante.getDepartamento()); // Departamento
-
-                    // Sexo (H/M)
-                    row.createCell(4).setCellValue(participante.getSexo().equalsIgnoreCase("Hombre") ? "X" : "");
-                    row.createCell(5).setCellValue(participante.getSexo().equalsIgnoreCase("Mujer") ? "X" : "");
-
-                    // Opcional: Rellenar otras columnas si los datos están disponibles
-                    if (participante.getPuesto() != null) {
-                        row.createCell(6).setCellValue(participante.getPuesto()); // Puesto Tipo
-                    }
-
-                    // Aplicar estilo de borde a todas las celdas
-                    for (int j = 0; j < headers.length; j++) {
-                        if (row.getCell(j) != null) {
-                            row.getCell(j).setCellStyle(borderStyle);
-                        }
-                    }
-                }
-
-                // Ajustar automáticamente el tamaño de las columnas
-                for (int i = 0; i < headers.length; i++) {
-                    sheet.autoSizeColumn(i);
-                }
-
-                // Agregar filas para las firmas
-                int firmaRowIndex = rowIndex + 5; // Dejar un espacio debajo de la tabla
-                Row firmaRow1 = sheet.createRow(firmaRowIndex);
-                firmaRow1.createCell(1).setCellValue("NOMBRE Y FIRMA DEL FACILITADOR(A)");
-                Row firmaRow2 = sheet.createRow(firmaRowIndex + 1); // Tres filas más abajo
-                firmaRow2.createCell(5).setCellValue("NOMBRE Y FIRMA DEL COORDINADOR(A) DE ACTUALIZACIÓN DOCENTE");
-
-                // Escribir el archivo Excel en disco
-                try (FileOutputStream fileOut = new FileOutputStream(file)) {
-                    workbook.write(fileOut);
-                }
-
-                System.out.println("Archivo Excel exportado con éxito");
-
-            } catch (IOException e) {
-                System.out.println("Error al exportar: " + e.getMessage());
-            }
+        Optional<String> resultado = dialog.showAndWait();
+        if (!resultado.isPresent()) {
+            return;
         }
+
+        String cursoIngresado = limpiarTextoInicial(resultado.get().trim());
+
+        if (cursoIngresado.isEmpty()) {
+            mostrarAlerta("No encontrado", "No se encontraron registros para el curso especificado.", AlertType.WARNING);
+            return;
+        }
+
+        // Buscar eventos que coincidan con el curso (ignorando números iniciales)
+        List<Evento> eventosFiltrados = eventoList.stream()
+                .filter(e -> limpiarTextoInicial(e.getNombreEvento())
+                .toLowerCase()
+                .contains(cursoIngresado.toLowerCase()))
+                .collect(Collectors.toList());
+
+        if (eventosFiltrados.isEmpty()) {
+            mostrarAlerta("No encontrado", "No se encontraron registros para el curso especificado.", AlertType.WARNING);
+            return;
+        }
+
+        try {
+            // Configuración de rutas
+            String desktopPath = System.getProperty("user.home") + File.separator + "Desktop";
+            String gestionCursosPath = desktopPath + File.separator + "Gestion_de_Cursos";
+
+            LocalDate fechaActual = LocalDate.now();
+            int mesActual = fechaActual.getMonthValue();
+            int añoActual = fechaActual.getYear();
+            String periodo = mesActual >= 1 && mesActual <= 7 ? "1" : "2";
+
+            String carpetaPeriodo = periodo + "-" + añoActual;
+            String rutaCarpetaFormatos = gestionCursosPath + File.separator + "Archivos_importados"
+                    + File.separator + añoActual + File.separator + carpetaPeriodo
+                    + File.separator + "formato_de_lista_de_asistencias";
+
+            // Buscar última versión del formato
+            File carpetaFormatos = new File(rutaCarpetaFormatos);
+            if (!carpetaFormatos.exists() || !carpetaFormatos.isDirectory()) {
+                mostrarAlerta("Error", "No se encontró la carpeta de formatos en: " + rutaCarpetaFormatos, AlertType.ERROR);
+                return;
+            }
+
+            File[] archivosFormato = carpetaFormatos.listFiles((dir, name)
+                    -> name.toLowerCase().matches("formato_\\(version_\\d+\\)\\.xlsx")
+            );
+
+            if (archivosFormato == null || archivosFormato.length == 0) {
+                mostrarAlerta("Error", "No se encontraron formatos en: " + rutaCarpetaFormatos, AlertType.ERROR);
+                return;
+            }
+
+            File ultimaVersion = Arrays.stream(archivosFormato)
+                    .max((f1, f2) -> {
+                        int v1 = extraerNumeroVersion(f1.getName());
+                        int v2 = extraerNumeroVersion(f2.getName());
+                        return Integer.compare(v1, v2);
+                    })
+                    .orElseThrow(() -> new IOException("No se pudo determinar la última versión del formato"));
+
+            // Cargar plantilla y obtener la hoja
+            Workbook workbook = null;
+            try {
+                workbook = WorkbookFactory.create(new FileInputStream(ultimaVersion));
+            } catch (InvalidFormatException | EncryptedDocumentException ex) {
+                Logger.getLogger(VizualizacionDatosController.class.getName()).log(Level.SEVERE, null, ex);
+                mostrarAlerta("Error", "Error al abrir el formato: " + ex.getMessage(), AlertType.ERROR);
+                return;
+            }
+            Sheet sheet = workbook.getSheetAt(0);
+
+            // Obtener el primer evento y trabajar con los nombres limpios
+            Evento primerEvento = eventosFiltrados.get(0);
+
+            // Llenar el formato usando los nombres limpios
+            llenarFormato(sheet, cursoIngresado, primerEvento);
+
+            // Crear estilo para las celdas de la tabla
+            CellStyle style = crearEstiloCelda(workbook);
+
+            // Llenar la tabla de participantes
+            llenarTablaParticipantes(sheet, eventosFiltrados, style);
+
+            // Crear directorios para exportación
+            String rutaExportacion = gestionCursosPath + File.separator + "Archivos_exportados"
+                    + File.separator + añoActual + File.separator + carpetaPeriodo
+                    + File.separator + "listas_asistencia";
+            new File(rutaExportacion).mkdirs();
+
+            // Guardar el archivo
+            String nombreArchivo = "listAsis_" + cursoIngresado.replace(" ", "_") + ".xlsx";
+            String rutaCompleta = rutaExportacion + File.separator + nombreArchivo;
+
+            try (FileOutputStream fileOut = new FileOutputStream(rutaCompleta)) {
+                workbook.write(fileOut);
+                mostrarAlerta("Éxito", "Archivo exportado correctamente en: " + rutaCompleta, AlertType.INFORMATION);
+            }
+
+        } catch (IOException e) {
+            mostrarAlerta("Error", "Error al exportar el archivo: " + e.getMessage(), AlertType.ERROR);
+            e.printStackTrace();
+        }
+    }
+
+    // Método para crear el estilo de celda
+    private CellStyle crearEstiloCelda(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        style.setBorderTop(CellStyle.BORDER_THIN);
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBorderLeft(CellStyle.BORDER_THIN);
+        style.setBorderRight(CellStyle.BORDER_THIN);
+        return style;
+    }
+
+// Método principal que maneja el llenado del formato
+    private void llenarFormato(Sheet sheet, String cursoBuscado, Evento primerEvento) {
+        try {
+            // Obtener información del curso del programa institucional
+            InfoCurso infoCurso = obtenerInfoCurso(cursoBuscado);
+
+            // Crear estilo simple para las celdas
+            // Llenar datos del encabezado
+            setCellValue(sheet, "D8", cursoBuscado);                    // NOMBRE DEL EVENTO
+            setCellValue(sheet, "D9", limpiarTextoInicial(primerEvento.getNombreFacilitador())); // NOMBRE DEL FACILITADOR
+            setCellValue(sheet, "D10", primerEvento.getPeriodo());          // PERIODO
+            setCellValue(sheet, "D11", "17DIT0009T");                       // SEDE
+
+            // Establecer horario y duración obtenidos del programa institucional
+            setCellValue(sheet, "Q9", infoCurso.horario);              // HORARIO
+            setCellValue(sheet, "J9", String.valueOf(infoCurso.duracion) + " horas"); // DURACIÓN
+
+            // Tipo de capacitación
+            String tipoCapacitacion = primerEvento.getCapacitacion().equals("AP")
+                    ? "Acreditación Profesional"
+                    : "Formación Docente";
+            setCellValue(sheet, "K10", tipoCapacitacion);              // TIPO
+
+        } catch (IOException e) {
+            System.out.println(e);
+            mostrarAlerta("Error", "Error al obtener información del programa institucional: " + e.getMessage(), AlertType.ERROR);
+        }
+    }
+
+// Método helper para establecer valores en celdas específicas
+    private void setCellValue(Sheet sheet, String cellReference, String value) {
+        try {
+            CellReference ref = new CellReference(cellReference);
+            Row row = sheet.getRow(ref.getRow());
+            if (row == null) {
+                row = sheet.createRow(ref.getRow());
+            }
+
+            Cell cell = row.getCell(ref.getCol());
+            if (cell == null) {
+                cell = row.createCell(ref.getCol());
+            }
+
+            cell.setCellValue(value);
+        } catch (Exception e) {
+            System.err.println("Error al establecer valor en celda " + cellReference + ": " + e.getMessage());
+        }
+    }
+
+// Método para llenar la tabla de participantes
+    private void llenarTablaParticipantes(Sheet sheet, List<Evento> eventos, CellStyle style) {
+        int rowNum = 15; // Comienza en la fila 15 (donde inicia la tabla de participantes)
+
+        for (Evento evento : eventos) {
+            Row row = sheet.getRow(rowNum);
+            if (row == null) {
+                row = sheet.createRow(rowNum);
+            }
+
+            // Columnas según el formato mostrado
+            createCell(row, 0, (rowNum - 14), style);  // No.
+            createCell(row, 1, evento.getApellidoPaterno() + " "
+                    + evento.getApellidoMaterno() + " "
+                    + evento.getNombres(), style);  // NOMBRE DEL PARTICIPANTE
+            createCell(row, 4, evento.getRfc(), style);   // R.F.C
+            createCell(row, 5, evento.getDepartamento(), style);  // PUESTO Y DEPARTAMENTO DE ADSCRIPCIÓN
+
+            // Género (H/M)
+            if ("Hombre".equalsIgnoreCase(evento.getSexo())) {
+                createCell(row, 9, "X", style);  // H
+                createCell(row, 10, "", style);   // M
+            } else if ("Mujer".equalsIgnoreCase(evento.getSexo())) {
+                createCell(row, 9, "", style);   // H
+                createCell(row, 10, "X", style);  // M
+            }
+
+            // Tipo de puesto (Base/Interinato)
+            String puesto = evento.getPuesto().toUpperCase();
+            if (puesto.contains("BASE")) {
+                createCell(row, 11, "X", style);  // B
+                createCell(row, 12, "", style);   // I
+            } else if (puesto.contains("INTERINATO")) {
+                createCell(row, 11, "", style);   // B
+                createCell(row, 12, "X", style);  // I
+            }
+
+            rowNum++;
+        }
+    }
+
+    // Método para obtener el archivo de programa institucional más reciente
+    private File obtenerProgramaInstitucionalReciente(String año, String periodo) throws IOException {
+        String rutaProgramas = System.getProperty("user.home") + File.separator
+                + "Desktop" + File.separator + "Gestion_de_Cursos"
+                + File.separator + "Archivos_importados"
+                + File.separator + año
+                + File.separator + periodo
+                + File.separator + "programa_institucional";
+
+        File carpetaProgramas = new File(rutaProgramas);
+        if (!carpetaProgramas.exists() || !carpetaProgramas.isDirectory()) {
+            throw new IOException("No se encontró la carpeta de programas institucionales en: " + rutaProgramas);
+        }
+
+        File[] archivos = carpetaProgramas.listFiles((dir, name)
+                -> name.toLowerCase().matches("programa_institucional_\\(semana_\\d+\\)\\.xlsx")
+        );
+
+        if (archivos == null || archivos.length == 0) {
+            throw new IOException("No se encontraron archivos de programa institucional en: " + rutaProgramas);
+        }
+
+        return Arrays.stream(archivos)
+                .max((f1, f2) -> {
+                    int semana1 = extraerNumeroSemana(f1.getName());
+                    int semana2 = extraerNumeroSemana(f2.getName());
+                    return Integer.compare(semana1, semana2);
+                })
+                .orElseThrow(() -> new IOException("No se pudo determinar el archivo más reciente"));
+    }
+
+// Método para extraer el número de semana del nombre del archivo
+    private int extraerNumeroSemana(String nombreArchivo) {
+        Pattern pattern = Pattern.compile("semana_(\\d+)");
+        Matcher matcher = pattern.matcher(nombreArchivo.toLowerCase());
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+        return 0;
+    }
+
+// Clase para almacenar la información del curso
+    private class InfoCurso {
+
+        String horario;
+        int duracion;
+
+        public InfoCurso(String horario, int duracion) {
+            this.horario = horario;
+            this.duracion = duracion;
+        }
+    }
+
+// Método para obtener horario y duración del curso
+    private InfoCurso obtenerInfoCurso(String nombreEvento) throws IOException {
+        LocalDate fechaActual = LocalDate.now();
+        int mesActual = fechaActual.getMonthValue();
+        int añoActual = fechaActual.getYear();
+        String periodo = (mesActual >= 1 && mesActual <= 7) ? "1-" + añoActual : "2-" + añoActual;
+
+        File archivoProgramaReciente = obtenerProgramaInstitucionalReciente(String.valueOf(añoActual), periodo);
+
+        try (Workbook workbook = WorkbookFactory.create(new FileInputStream(archivoProgramaReciente))) {
+            Sheet sheet = workbook.getSheetAt(0);
+
+            // Buscar el curso en el archivo
+            for (Row row : sheet) {
+                Cell cellNombreEvento = row.getCell(1); // Columna B: Nombre de los evento
+                if (cellNombreEvento != null
+                        && cellNombreEvento.getStringCellValue().trim().equalsIgnoreCase(nombreEvento.trim())) {
+
+                    // Extraer horario del periodo de realización
+                    Cell cellPeriodo = row.getCell(4); // Columna E: Periodo de Realización
+                    String periodoCompleto = cellPeriodo.getStringCellValue();
+                    String horario = extraerHorario(periodoCompleto);
+
+                    // Extraer duración
+                    Cell cellDuracion = row.getCell(6); // Columna G: No. de horas x Curso
+                    int duracion = (int) cellDuracion.getNumericCellValue();
+
+                    return new InfoCurso(horario, duracion);
+                }
+            }
+            throw new IOException("No se encontró el curso especificado en el programa institucional");
+        } catch (Exception e) {
+            throw new IOException("Error al leer el archivo de programa institucional: " + e.getMessage());
+        }
+    }
+
+// Método para extraer solo el horario de la cadena completa
+    private String extraerHorario(String periodoCompleto) {
+        Pattern pattern = Pattern.compile("(\\d{2}:\\d{2} a \\d{2}:\\d{2})");
+        Matcher matcher = pattern.matcher(periodoCompleto);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return "";
+    }
+
+// Método helper para extraer el número de versión del nombre del archivo
+    private int extraerNumeroVersion(String nombreArchivo) {
+        Pattern pattern = Pattern.compile("formato_\\(version_(\\d+)\\)\\.xlsx", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(nombreArchivo);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+        return 0; // Retorna 0 si no encuentra un número de versión
+    }
+
+// Método helper para crear celdas de manera segura
+    private void createCell(Row row, int column, Object value, CellStyle style) {
+        Cell cell = row.createCell(column);
+        if (value instanceof String) {
+            cell.setCellValue((String) value);
+        } else if (value instanceof Number) {
+            cell.setCellValue(((Number) value).doubleValue());
+        }
+        cell.setCellStyle(style);
+    }
+
+// Método helper para establecer valores en celdas de manera segura
+    private void setCellValueSafely(Sheet sheet, int rowIndex, int colIndex, String value) {
+        Row row = sheet.getRow(rowIndex);
+        if (row == null) {
+            row = sheet.createRow(rowIndex);
+        }
+        Cell cell = row.getCell(colIndex);
+        if (cell == null) {
+            cell = row.createCell(colIndex);
+        }
+        cell.setCellValue(value);
     }
 
     @FXML
@@ -569,10 +811,10 @@ public class VizualizacionDatosController implements Initializable {
             Calendar calendario = Calendar.getInstance();
             int año = calendario.get(Calendar.YEAR);
             int periodo = calendario.get(Calendar.MONTH) < 7 ? 1 : 2;
-            
-            String filePath = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos\\"+año+"\\"+periodo+"-"+año+"\\";
+
+            String filePath = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos\\" + año + "\\" + periodo + "-" + año + "\\";
             int numeroSemana = obtenerUltimaSemana(filePath, "condensado\\_\\(version_\\d+\\)\\.xlsx", "version");
-            filePath += "condensado_(version_"+(numeroSemana+1)+").xlsx";
+            filePath += "condensado_(version_" + (numeroSemana + 1) + ").xlsx";
             try (FileOutputStream fileOut = new FileOutputStream(filePath)) {
                 workbook.write(fileOut);
             }
@@ -695,43 +937,55 @@ public class VizualizacionDatosController implements Initializable {
 
     }
 
-    // Método principal para leer eventos desde el archivo Excel
-    public static List<Evento> leerEventosDesdeExcel(String rutaArchivoEventos, String rutaArchivoClasificaciones) throws IOException {
+    // Modificar el método leerEventosDesdeExcel para usar los estados de acreditación
+    public List<Evento> leerEventosDesdeExcel(String rutaArchivoEventos, String rutaArchivoClasificaciones) throws IOException {
+        // Cargar estados de acreditación
+        HashMap<String, Boolean> estadosAcreditacion = cargarEstadosAcreditacion();
+
         // Cargar clasificaciones desde el segundo archivo Excel
         HashMap<String, String> clasificaciones = cargarClasificacionesDesdeExcel(rutaArchivoClasificaciones);
 
         List<Evento> eventos = new ArrayList<>();
 
         try (FileInputStream archivo = new FileInputStream(rutaArchivoEventos); Workbook workbook = new XSSFWorkbook(archivo)) {
+
             Sheet sheet = workbook.getSheetAt(0);
             for (Row row : sheet) {
                 if (row.getRowNum() == 0) {
                     continue; // Saltar la fila de encabezados
                 }
-                
-                if (row.getCell(4).getStringCellValue().trim().isEmpty()) {
+                if (row.getCell(4) == null || row.getCell(4).getStringCellValue().trim().isEmpty()) {
                     break;
                 }
 
-                String apellidoPaterno = getCellValue(row.getCell(4));
-                String apellidoMaterno = getCellValue(row.getCell(5));
-                String nombres = getCellValue(row.getCell(6));
-                String rfc = getCellValue(row.getCell(7));
-                String sexo = getCellValue(row.getCell(8));
-                String departamento = getCellValue(row.getCell(9));
-                String puesto = getCellValue(row.getCell(10));
-                String nombreEvento = getCellValue(row.getCell(11));
-                String nombreFacilitador = getCellValue(row.getCell(12));
-                String periodo = getCellValue(row.getCell(13));
-                Boolean acreditacion = "Sí".equalsIgnoreCase(getCellValue(row.getCell(14)));
+                String apellidoPaterno = getCellValueSafe(row.getCell(4));
+                String apellidoMaterno = getCellValueSafe(row.getCell(5));
+                String nombres = getCellValueSafe(row.getCell(6));
+                String rfc = getCellValueSafe(row.getCell(7));
+                String sexo = getCellValueSafe(row.getCell(8));
+                String departamento = getCellValueSafe(row.getCell(9));
+                String puesto = getCellValueSafe(row.getCell(10));
+                String nombreEvento = getCellValueSafe(row.getCell(11));
+                String nombreFacilitador = getCellValueSafe(row.getCell(12));
+                String periodo = getCellValueSafe(row.getCell(13));
 
-                // Obtener la clasificación desde el mapa de clasificaciones
-                String capacitacion = clasificaciones.getOrDefault(nombreEvento.split("\\.")[1].trim(), "Sin clasificación");
+                // Buscar el estado de acreditación en el mapa
+                String key = rfc + "|" + nombreEvento;
+                Boolean acreditado = estadosAcreditacion.getOrDefault(key, false); // Por defecto false (tacha)
 
-                eventos.add(new Evento(apellidoPaterno, apellidoMaterno, nombres, rfc, sexo,
-                        departamento, puesto, nombreEvento, capacitacion, nombreFacilitador, periodo, acreditacion));
+                String capacitacion = clasificaciones.getOrDefault(
+                        nombreEvento.split("\\.")[1].trim(),
+                        "Sin clasificación"
+                );
+
+                eventos.add(new Evento(
+                        apellidoPaterno, apellidoMaterno, nombres, rfc, sexo,
+                        departamento, puesto, nombreEvento, capacitacion,
+                        nombreFacilitador, periodo, acreditado
+                ));
             }
         }
+
         return eventos;
     }
 
@@ -762,4 +1016,124 @@ public class VizualizacionDatosController implements Initializable {
     private static String getCellValue(Cell cell) {
         return cell != null ? cell.toString().trim() : "";
     }
+
+    // Método para cargar los estados de acreditación desde el archivo condensado
+    private HashMap<String, Boolean> cargarEstadosAcreditacion() {
+        HashMap<String, Boolean> estadosAcreditacion = new HashMap<>();
+
+        try {
+            Calendar calendario = Calendar.getInstance();
+            int año = calendario.get(Calendar.YEAR);
+            int periodo = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
+
+            String rutaBase = ControladorGeneral.obtenerRutaDeEjecusion()
+                    + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos\\"
+                    + año + "\\" + periodo + "-" + año + "\\";
+
+            File carpeta = new File(rutaBase);
+            if (!carpeta.exists() || !carpeta.isDirectory()) {
+                System.out.println("No existe el directorio de condensados");
+                return estadosAcreditacion; // Retorna mapa vacío, resultará en todas las tachas
+            }
+
+            // Obtener la última versión del condensado
+            int numeroVersion = obtenerUltimaSemana(rutaBase, "condensado\\_\\(version_\\d+\\)\\.xlsx", "version");
+            String rutaArchivo = rutaBase + "condensado_(version_" + numeroVersion + ").xlsx";
+
+            File archivoCondensado = new File(rutaArchivo);
+            if (!archivoCondensado.exists()) {
+                System.out.println("No existe archivo condensado");
+                return estadosAcreditacion; // Retorna mapa vacío, resultará en todas las tachas
+            }
+
+            // Leer el archivo Excel
+            try (FileInputStream fis = new FileInputStream(archivoCondensado); Workbook workbook = new XSSFWorkbook(fis)) {
+
+                Sheet sheet = workbook.getSheetAt(0);
+
+                // Encontrar índices de las columnas necesarias
+                int[] indices = encontrarIndicesColumnas(sheet.getRow(0));
+                if (indices == null) {
+                    return estadosAcreditacion; // Si no se encuentran las columnas necesarias
+                }
+
+                // Iterar sobre todas las filas
+                for (Row row : sheet) {
+                    if (row.getRowNum() == 0) {
+                        continue; // Saltar encabezados
+                    }
+                    // Extraer la información necesaria
+                    String rfc = getCellValueSafe(row.getCell(indices[3])); // RFC
+                    String nombreEvento = getCellValueSafe(row.getCell(indices[7])); // Nombre Evento
+                    String acreditacionStr = getCellValueSafe(row.getCell(indices[11])); // Acreditación
+
+                    if (rfc.isEmpty() || nombreEvento.isEmpty()) {
+                        continue;
+                    }
+
+                    // Crear una clave única combinando RFC y nombre del evento
+                    String key = rfc + "|" + nombreEvento;
+
+                    // Determinar el estado de acreditación
+                    boolean acreditado = acreditacionStr.toLowerCase().equals("si");
+
+                    // Guardar en el mapa
+                    estadosAcreditacion.put(key, acreditado);
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("Error al leer el archivo condensado: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Error general al cargar estados de acreditación: " + e.getMessage());
+        }
+
+        return estadosAcreditacion;
+    }
+
+// Método auxiliar para encontrar los índices de las columnas necesarias
+    private int[] encontrarIndicesColumnas(Row headerRow) {
+        if (headerRow == null) {
+            return null;
+        }
+
+        int[] indices = new int[12]; // [ApPaterno, ApMaterno, Nombres, RFC, Sexo, Depto, Puesto, NombreEvento, Capacitacion, Facilitador, Periodo, Acreditacion]
+        String[] columnasRequeridas = {
+            "ApellidoPaterno", "ApellidoMaterno", "Nombres", "RFC", "Sexo",
+            "Departamento", "Puesto", "NombreEvento", "Capacitacion",
+            "NombreFacilitador", "Periodo", "Acreditación"
+        };
+
+        for (Cell cell : headerRow) {
+            String headerValue = cell.getStringCellValue().trim();
+            for (int i = 0; i < columnasRequeridas.length; i++) {
+                if (headerValue.equalsIgnoreCase(columnasRequeridas[i])) {
+                    indices[i] = cell.getColumnIndex();
+                    break;
+                }
+            }
+        }
+
+        return indices;
+    }
+
+// Método auxiliar para obtener el valor de una celda de forma segura
+    private String getCellValueSafe(Cell cell) {
+        if (cell == null) {
+            return "";
+        }
+        try {
+            return cell.getStringCellValue().trim();
+        } catch (Exception e) {
+            try {
+                return String.valueOf(cell.getNumericCellValue()).trim();
+            } catch (Exception ex) {
+                return "";
+            }
+        }
+    }
+
 }
