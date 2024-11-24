@@ -69,9 +69,9 @@ public class ImportacionArchivosController implements Initializable {
         selectorArchivos.setTitle("Seleccionar archivo");
         selectorArchivos.setInitialDirectory(new File(System.getProperty("user.home")));
         selectorArchivos.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Todos los archivos", ".xlsx", ".xls"),
+                new FileChooser.ExtensionFilter("Todos los archivos", "*.xlsx", "*.xls"),
                 //new FileChooser.ExtensionFilter("PDF", "*.pdf"),
-                new FileChooser.ExtensionFilter("Excel", ".xlsx", ".xls")
+                new FileChooser.ExtensionFilter("Excel", "*.xlsx", "*.xls")
         //new FileChooser.ExtensionFilter("Word", ".doc", ".docx")
         );
 
@@ -95,11 +95,11 @@ public class ImportacionArchivosController implements Initializable {
         if (tipoFormato.equals("Formato de hojas membretadas para reconocimientos")) {
             selectorArchivos.getExtensionFilters().addAll(
                     new FileChooser.ExtensionFilter("Archivos PDF", "*.pdf"),
-                    new FileChooser.ExtensionFilter("Archivos Word", ".doc", ".docx")
+                    new FileChooser.ExtensionFilter("Archivos Word", "*.doc", "*.docx")
             );
         } else {
             selectorArchivos.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Archivos Excel", ".xlsx", ".xls")
+                    new FileChooser.ExtensionFilter("Archivos Excel", "*.xlsx", "*.xls")
             );
         }
 
@@ -119,7 +119,7 @@ public class ImportacionArchivosController implements Initializable {
         selectorArchivos.setTitle("Seleccionar archivo");
         selectorArchivos.setInitialDirectory(new File(System.getProperty("user.home")));
         selectorArchivos.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Archivos Excel", ".xlsx", ".xls")
+                new FileChooser.ExtensionFilter("Archivos Excel", "*.xlsx", "*.xls")
         );
 
         listado = selectorArchivos.showOpenDialog(botonPC.getScene().getWindow());

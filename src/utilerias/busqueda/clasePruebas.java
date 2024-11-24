@@ -95,6 +95,7 @@ public class clasePruebas {
     }
 
     public static void main(String[] args) {
-        ejemploUso();
+        //ejemploUso();
+        System.out.println("7. Curso Padres".split("\\.")[1].trim());
     }
 }

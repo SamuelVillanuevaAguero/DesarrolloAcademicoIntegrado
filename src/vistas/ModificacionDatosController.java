@@ -147,6 +147,7 @@ public class ModificacionDatosController implements Initializable {
     public void initialize(URL url, ResourceBundle rb) {
         SpinnerValueFactory<Integer> valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 800, 100);
         totalDocentesField.setValueFactory(valueFactory);
+        totalDocentesField.setEditable(true);
 
         SpinnerValueFactory<Integer> añoValueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(2000, 2100, 2024);
         año.setValueFactory(añoValueFactory);

@@ -528,123 +528,6 @@ public class BusquedaEstadisticaController implements Initializable {
         data.addAll(dataMap.values());
         return data;
     }*/
-    private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo) {
-        ObservableList<filaDato> data = FXCollections.observableArrayList();
-        Map<String, filaDato> dataMap = new HashMap<>();
-
-        // Directorio base
-        String baseDir = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos";
-        Path searchPath;
-
-        // Construir la ruta del directorio basado en año y periodo
-        if (año != 0) {
-            if (periodo == 0) {
-                searchPath = Paths.get(baseDir, año.toString());
-            } else {
-                searchPath = Paths.get(baseDir, año.toString(), periodo + "-" + año);
-            }
-        } else {
-            searchPath = Paths.get(baseDir);
-        }
-
-        try {
-            // Filtrar archivos Excel con formato `condensado_(versionX).xlsx`
-            Stream<Path> pathStream = Files.walk(searchPath)
-                    .filter(path -> path.toString().matches(".*condensado_\\(version_\\d+\\)\\.xlsx"));
-
-            // Leer cada archivo Excel encontrado
-            pathStream.forEach(path -> {
-                System.out.println("Leyendo archivo: " + path);
-
-                try (FileInputStream file = new FileInputStream(path.toFile()); Workbook workbook = WorkbookFactory.create(file)) {
-
-                    Sheet sheet = workbook.getSheetAt(0);
-
-                    // Recorrer las filas del archivo Excel
-                    for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-                        System.out.println(sheet.getLastRowNum());
-                        Row row = sheet.getRow(i);
-
-                        if (row == null) {
-                            continue;
-                        }
-
-                        // Extraer la fecha en formato `15-nov-2024` (celda de período)
-                        String periodoCell = row.getCell(1).getStringCellValue();
-                        int currentAño = 0;
-                        int currentPeriodo = 0;
-
-                        try {
-                            // Crear un formateador para fechas en formato "dd-MMM-yyyy"
-                            DateTimeFormatter formatter = new DateTimeFormatterBuilder()
-                                    .parseCaseInsensitive()
-                                    .appendPattern("dd-MMM-yyyy")
-                                    .toFormatter(new Locale("es", "ES"))
-                                    .withResolverStyle(ResolverStyle.SMART);
-
-                            // Validar si la celda contiene datos antes de procesarla
-                            if (periodoCell == null || periodoCell.trim().isEmpty()) {
-                                System.err.println("La celda de fecha está vacía o nula. Se omite este registro.");
-                                return; // Salir del bloque si no hay una fecha válida
-                            }
-
-                            // Intentar parsear la fecha
-                            LocalDate fecha = LocalDate.parse(periodoCell.trim().toLowerCase(), formatter);
-
-                            // Extraer año y periodo
-                            currentAño = fecha.getYear();
-                            currentPeriodo = (fecha.getMonthValue() <= 7) ? 1 : 2;
-
-                        } catch (DateTimeParseException e) {
-                            // Manejo de errores para cadenas de fecha no válidas
-                            System.err.println("Error al parsear la fecha: " + periodoCell);
-                            e.printStackTrace();
-                        }
-
-                        // Validar los filtros de año y período
-                        boolean passAñoFilter = currentAño == año || año == 0;
-                        boolean passPeriodoFilter = periodo == 0 || currentPeriodo == periodo;
-
-                        if (passAñoFilter && passPeriodoFilter) {
-                            // Extraer los datos de las demás celdas
-                            String nombre = row.getCell(4).getStringCellValue();
-                            String apellidoPaterno = row.getCell(2).getStringCellValue();
-                            String apellidoMaterno = row.getCell(3).getStringCellValue();
-                            String departamento = row.getCell(7).getStringCellValue();
-                            String posgrado = row.getCell(8).getStringCellValue();
-                            String acreditado = row.getCell(13).getStringCellValue();
-                            String tipoCapacitacion = row.getCell(11).getStringCellValue();
-
-                            // Generar una clave única para el registro
-                            String key = currentAño + " " + periodoCell + " " + nombre + " " + apellidoPaterno + " " + apellidoMaterno + " " + departamento + " " + posgrado + " " + acreditado + " " + tipoCapacitacion;
-                            // Verificar si ya existe el registro en el Map
-                            if (dataMap.containsKey(key)) {
-                                // Incrementar el contador de cursos si ya existe
-                                filaDato existingDato = dataMap.get(key);
-                                existingDato.setNoCursos(existingDato.getNoCursos() + 1);
-                            } else {
-                                // Si no existe, crear un nuevo objeto filaDato con noCursos = 1
-                                filaDato newDato = new filaDato(currentAño, periodoCell, nombre,
-                                        apellidoPaterno, apellidoMaterno, departamento, posgrado,
-                                        acreditado, tipoCapacitacion, 1);
-                                dataMap.put(key, newDato);
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    Logger.getLogger(BusquedaEstadisticaController.class.getName())
-                            .log(Level.SEVERE, "Error leyendo archivo: " + path, e);
-                }
-            });
-        } catch (IOException e) {
-            Logger.getLogger(BusquedaEstadisticaController.class.getName())
-                    .log(Level.SEVERE, "Error recorriendo directorio", e);
-        }
-
-        // Convertir el Map a una lista observable
-        data.addAll(dataMap.values());
-        return data;
-    }
 
     /*private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo, String tipoCapacitacion, String departamento, String acreditacion, String nivel) {
         ObservableList<filaDato> data = FXCollections.observableArrayList();
@@ -737,6 +620,7 @@ public class BusquedaEstadisticaController implements Initializable {
     private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo, String tipoCapacitacion, String departamento, String acreditacion, String nivel) throws InvalidFormatException {
         ObservableList<filaDato> data = FXCollections.observableArrayList();
         Map<String, filaDato> dataMap = new HashMap<>();
+        Map<String, filaDato> dataMap2 = new HashMap<>();
 
         // Directorio base
         String baseDir = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos";
@@ -769,6 +653,7 @@ public class BusquedaEstadisticaController implements Initializable {
             try (FileInputStream file = new FileInputStream(archivo); Workbook workbook = WorkbookFactory.create(file)) {
                 Sheet sheet = workbook.getSheetAt(0); // Usamos la primera hoja del libro Excel
 
+                int contadorPosgrado = 0;
                 for (int i = 1; i <= sheet.getLastRowNum(); i++) { // Iterar desde la segunda fila
 
                     Row row = sheet.getRow(i);
@@ -782,8 +667,9 @@ public class BusquedaEstadisticaController implements Initializable {
 
                     try {
                         // Leer la celda de la fecha y parsear al formato "dd/MMM/yyyy" con meses en letras
-                        periodoCell = getCellValueAsString(row.getCell(0));
-                        System.out.println("PeriodoCell: " + periodoCell);
+                        String[] mes = row.getCell(10).getStringCellValue().split(" ");
+                        periodoCell = mes[mes.length - 1].substring(0, 3).toLowerCase();
+
 
                         if (!periodoCell.isEmpty()) {
                             // Crear un formateador que soporte abreviaturas de meses en español
@@ -791,9 +677,9 @@ public class BusquedaEstadisticaController implements Initializable {
 
                             // Parsear la fecha con el formateador
                             //LocalDate date = LocalDate.parse(periodoCell, formatter);
-                            currentAño = extraerAnio(periodoCell);
+                            currentAño = año;
                             currentPeriodo = extraerMes(periodoCell) < 7 ? 1 : 2; // Determinar el período
-                            System.out.println("Año: " + currentAño + " Periodo: " + currentPeriodo);
+                            periodoCell = currentPeriodo == 1 ? "ENERO - JULIO" : "AGOSTO - DICIEMBRE";
                         }
                     } catch (DateTimeParseException e) {
                         Logger.getLogger(BusquedaEstadisticaController.class.getName())
@@ -806,27 +692,33 @@ public class BusquedaEstadisticaController implements Initializable {
                     boolean passPeriodoFilter = periodo == 0 || currentPeriodo == periodo;
 
                     // Leer las celdas con los valores necesarios
-                    String filaTipoCapacitacion = getCellValueAsString(row.getCell(10));
-                    String filaDepartamento = getCellValueAsString(row.getCell(7));
-                    String filaPosgrado = getCellValueAsString(row.getCell(8));
-                    String filaAcreditacion = getCellValueAsString(row.getCell(13));
+                    String filaTipoCapacitacion = getCellValueAsString(row.getCell(8));
+                    String filaDepartamento = getCellValueAsString(row.getCell(5));
+                    String filaPosgrado = getCellValueAsString(row.getCell(5)).equalsIgnoreCase("POSGRADO") ? "si" : "no";
+                    String filaAcreditacion = getCellValueAsString(row.getCell(11));
 
                     // Validar filtros de ComboBox
-                    boolean passTipoCapacitacion = tipoCapacitacion == null || tipoCapacitacion.equals(filaTipoCapacitacion);
-                    boolean passDepartamento = departamento == null || departamento.equals(filaDepartamento);
-                    boolean passAcreditacion = acreditacion == null || acreditacion.equalsIgnoreCase(filaAcreditacion) || acreditacion.equals("Ambos");
+                    boolean passTipoCapacitacion = tipoCapacitacion == null || tipoCapacitacion.equalsIgnoreCase(filaTipoCapacitacion);
+                    boolean passDepartamento = departamento == null || departamento.equalsIgnoreCase(filaDepartamento);
+                    boolean passAcreditacion = acreditacion == null || acreditacion.equalsIgnoreCase(filaAcreditacion) || acreditacion.equalsIgnoreCase("Ambos");
                     boolean passNivel = nivel == null
                             || (nivel.equals("Licenciatura") && filaPosgrado.equalsIgnoreCase("No"))
-                            || (nivel.equals("Posgrado") && filaPosgrado.equalsIgnoreCase("Sí"));
+                            || (nivel.equals("Posgrado") && filaPosgrado.equalsIgnoreCase("Si"));
 
                     // Aplicar todos los filtros
                     if (passAñoFilter && passPeriodoFilter && passTipoCapacitacion && passDepartamento && passAcreditacion && passNivel) {
-                        String nombre = getCellValueAsString(row.getCell(4));
-                        String apellidoPaterno = getCellValueAsString(row.getCell(2));
-                        String apellidoMaterno = getCellValueAsString(row.getCell(3));
+                        String nombre = getCellValueAsString(row.getCell(2));
+                        String apellidoPaterno = getCellValueAsString(row.getCell(0));
+                        String apellidoMaterno = getCellValueAsString(row.getCell(1));
 
                         // Crear clave única para el Map
                         String key = currentAño + " " + periodoCell + " " + nombre + " " + apellidoPaterno + " " + apellidoMaterno + " " + filaDepartamento + " " + filaPosgrado + " " + filaAcreditacion + " " + filaTipoCapacitacion;
+                        String key2 = nombre + " " + apellidoPaterno + " " + apellidoMaterno;
+
+                        if (!dataMap2.containsKey(key2) && filaPosgrado.equalsIgnoreCase("si")) {
+                            contadorPosgrado += 1;
+                            dataMap2.put(key2, new filaDato(0, periodoCell, nombre, apellidoPaterno, apellidoMaterno, departamento, departamento, acreditacion, tipoCapacitacion, 0));
+                        }
 
                         // Verificar si ya existe el registro en el Map
                         if (dataMap.containsKey(key)) {
@@ -840,6 +732,8 @@ public class BusquedaEstadisticaController implements Initializable {
                         }
                     }
                 }
+
+                NumeroDocentesNivel.setText(String.valueOf(contadorPosgrado));
             }
 
         } catch (IOException e) {
@@ -866,17 +760,7 @@ public class BusquedaEstadisticaController implements Initializable {
         meses.put("nov", 11);
         meses.put("dic", 12);
 
-        // Separar la cadena por guiones  
-        String[] partes = fecha.split("-");
-        if (partes.length != 3) {
-            throw new IllegalArgumentException("La fecha no tiene el formato correcto");
-        }
-
-        // Obtener el mes en formato de texto  
-        String mesTexto = partes[1].toLowerCase(); // Convertir a minúsculas para la búsqueda  
-
-        // Devolver el mes como número  
-        return meses.getOrDefault(mesTexto, -1); // Retorna -1 si el mes no es válido  
+        return meses.getOrDefault(fecha, -1); // Retorna -1 si el mes no es válido  
     }
 
     public static int extraerAnio(String fecha) {
@@ -1061,7 +945,7 @@ public class BusquedaEstadisticaController implements Initializable {
         porcentajeDocentesCapacitados.setText((int) porcentajeCapacitados + "%");
         // Inicializar opciones de ComboBoxes
         comboTipoCapacitacion.getItems().addAll("Actualización profesional", "Formación docente");
-        comboDepartamento.getItems().addAll("Ciencias Básicas", "Ciencias Económico Administrativas", "Ingeniería Industrial", "Sistemas Computacionales");
+        comboDepartamento.getItems().addAll("CIENCIAS BÁSICAS", "CIENCIAS ECONÓMICO ADMINISTRATIVAS", "CIENCIAS DE LA TIERRA", "INGENIERÍA INDUSTRIAL", "METAL MECÁNICA", "QUÍMICA Y BIOQUÍMICA", "SISTEMAS COMPUTACIONALES");
         comboAcreditacion.getItems().addAll("Si", "No", "Ambos");
         comboNivel.getItems().addAll("Licenciatura", "Posgrado");
 
@@ -1070,6 +954,9 @@ public class BusquedaEstadisticaController implements Initializable {
         comboAño.getItems().addAll(getAvailableYears(ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos"));
         comboPeriodo.getItems().addAll("Enero - Julio", "Agosto - Diciembre");
         comboFormato.getItems().addAll("PDF", "EXCEL");
+        
+        comboAño.setValue(currentYear);
+        comboPeriodo.setValue(mesActual == 2 ? "Enero - Julio" : "Agosto - Diciembre");
 
         botonCerrar.setOnMouseClicked(event -> {
             try {
@@ -1108,6 +995,7 @@ public class BusquedaEstadisticaController implements Initializable {
         });
 
         botonBuscar.setOnMouseClicked(event -> {
+
             System.out.println("Botón buscar...");
 
             String tipoCapacitacion = comboTipoCapacitacion.getValue() == null ? null : comboTipoCapacitacion.getValue().equals("Formación docente") ? "FD" : "AP";
@@ -1119,6 +1007,15 @@ public class BusquedaEstadisticaController implements Initializable {
             int año = comboAño.getValue() != null ? comboAño.getValue() : 0;
             int periodo = comboPeriodo.getValue() != null
                     ? comboPeriodo.getValue().equals("Enero - Julio") ? 1 : 2 : 0;
+
+            if (año == 0 || periodo == 0) {
+                Alert alerta = new Alert(Alert.AlertType.WARNING);
+                alerta.setTitle("Periodo");
+                alerta.setHeaderText(null);
+                alerta.setContentText("Selecciona un año y periodo");
+                alerta.showAndWait();
+                return;
+            }
 
             try {
                 // Llamar al método readAllExcelFiles pasando todos los filtros

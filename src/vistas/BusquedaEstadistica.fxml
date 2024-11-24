@@ -37,21 +37,21 @@
       <Button fx:id="botonLimpiar" layoutX="832.0" layoutY="123.0" mnemonicParsing="false" prefHeight="38.0" prefWidth="82.0" styleClass="button-gris" text="Limpar" />
       <TableView fx:id="tabla" layoutX="43.2" layoutY="235.0" prefHeight="215.0" prefWidth="926.0" AnchorPane.leftAnchor="43.0" AnchorPane.rightAnchor="43.0" />
       <ComboBox fx:id="comboFormato" layoutX="818.0" layoutY="473.0" prefWidth="150.0" promptText="---" />
-      <Button fx:id="botonExportar" layoutX="871.0" layoutY="527.0" mnemonicParsing="false" prefHeight="38.0" prefWidth="93.0" styleClass="button-azul" text="Export" />
-      <Label layoutX="42.4" layoutY="455.0" text="Numero total de docentes del tecnologico:" AnchorPane.leftAnchor="42.4" />
-      <Label layoutX="41.0" layoutY="472.0" text="Número total de docentes que tomaron curso de capacitación:" AnchorPane.leftAnchor="41.0" />
-      <Label layoutX="41.0" layoutY="492.0" text="(%) de docentes que tomaron cursos de capacitación:" AnchorPane.leftAnchor="41.0" />
-      <Label layoutX="41.0" layoutY="511.0" text="Número de participantes nivel posgrado (AP):" AnchorPane.leftAnchor="41.0" />
-      <Label fx:id="botonActualizar" layoutX="77.0" layoutY="538.0" styleClass="label-vinculo" text="¿SE ACTUALIZARON DOCUMENTOS?" />
-      <ImageView fitHeight="24.0" fitWidth="24.0" layoutX="43.0" layoutY="536.0" pickOnBounds="true" preserveRatio="true" AnchorPane.leftAnchor="42.0">
+      <Button fx:id="botonExportar" layoutX="871.0" layoutY="527.0" mnemonicParsing="false" prefHeight="38.0" prefWidth="93.0" styleClass="button-azul" text="Exportar" />
+      <Label layoutX="42.4" layoutY="455.0" text="Numero total de docentes del tecnologico:" AnchorPane.leftAnchor="43.0" />
+      <Label layoutX="41.0" layoutY="482.0" text="Número total de docentes que tomaron curso de capacitación:" AnchorPane.leftAnchor="43.0" />
+      <Label layoutX="43.0" layoutY="511.0" text="(%) de docentes que tomaron cursos de capacitación:" AnchorPane.leftAnchor="43.0" />
+      <Label layoutX="43.0" layoutY="536.0" text="Número de participantes nivel posgrado (AP):" AnchorPane.leftAnchor="43.0" />
+      <Label fx:id="botonActualizar" layoutX="486.0" layoutY="200.0" styleClass="label-vinculo" text="¿SE ACTUALIZARON DOCUMENTOS?" />
+      <ImageView fitHeight="24.0" fitWidth="24.0" layoutX="445.0" layoutY="196.0" pickOnBounds="true" preserveRatio="true" AnchorPane.leftAnchor="445.0">
          <image>
             <Image url="@../utilerias/busqueda/logoInterrogacion.png" />
          </image>
       </ImageView>
-      <Label fx:id="docentesTomandoCursos" layoutX="434.0" layoutY="472.0" text="000" />
+      <Label fx:id="docentesTomandoCursos" layoutX="434.0" layoutY="482.0" text="000" />
       <Label fx:id="numeroTotalDocentes" layoutX="315.0" layoutY="455.0" text="000" />
-      <Label fx:id="porcentajeDocentesCapacitados" layoutX="379.0" layoutY="492.0" text="000" />
-      <Label fx:id="NumeroDocentesNivel" layoutX="333.0" layoutY="511.0" text="000" />
-      <Label fx:id="botonActualizarDatos" layoutX="103.0" layoutY="557.0" styleClass="label-vinculo" text="¿SE ACTUALIZARON DATOS?" />
+      <Label fx:id="porcentajeDocentesCapacitados" layoutX="381.0" layoutY="511.0" text="000" />
+      <Label fx:id="NumeroDocentesNivel" layoutX="338.0" layoutY="536.0" text="000" />
+      <Label fx:id="botonActualizarDatos" layoutX="761.0" layoutY="200.0" styleClass="label-vinculo" text="¿SE ACTUALIZARON DATOS?" />
    </children>
 </AnchorPane>

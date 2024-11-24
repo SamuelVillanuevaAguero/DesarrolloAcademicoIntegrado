@@ -42,13 +42,12 @@
          </cursor>
       </Button>
       <Button fx:id="botonGuardar" layoutX="775.0" layoutY="519.0" mnemonicParsing="false" onAction="#guardar" prefHeight="38.0" prefWidth="98.0" styleClass="button-azul" text="Guardar" />
-      <TextField fx:id="campoBusqueda" layoutX="313.0" layoutY="89.0" prefHeight="32.0" prefWidth="266.0" styleClass="text-field" />
-      <ImageView layoutX="556.0" layoutY="94.0">
+      <TextField fx:id="campoBusqueda" layoutX="313.0" layoutY="89.0" prefHeight="32.0" prefWidth="400.0" styleClass="text-field" AnchorPane.leftAnchor="300.0" AnchorPane.rightAnchor="300.0" />
+      <ImageView layoutX="690.0" layoutY="95.0">
          <image>
             <Image url="@../utilerias/visualizacionDatos/logoLupa.png" />
          </image>
       </ImageView>
-      <Button fx:id="botonBuscar" layoutX="603.0" layoutY="84.0" mnemonicParsing="false" onAction="#Buscar" styleClass="button-azul" text="Buscar" />
       <TableView fx:id="tableView" layoutX="14.0" layoutY="150.0" prefHeight="356.0" prefWidth="982.0" />
       <ImageView fitHeight="24.0" fitWidth="24.0" layoutX="14.0" layoutY="521.0" pickOnBounds="true" preserveRatio="true">
          <image>

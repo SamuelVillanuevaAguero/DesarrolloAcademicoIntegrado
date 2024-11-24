@@ -10,11 +10,14 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.application.Application;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -88,6 +91,10 @@ public class VizualizacionDatosController implements Initializable {
             } catch (IOException ex) {
                 Logger.getLogger(VizualizacionDatosController.class.getName()).log(Level.SEVERE, null, ex);
             }
+        });
+        
+        campoBusqueda.setOnKeyReleased(event -> {
+            Buscar();
         });
 
         configurarTabla();
@@ -211,9 +218,20 @@ public class VizualizacionDatosController implements Initializable {
     private void cargarDatos() {
         try {
             // Definir las rutas para ambos archivos Excel
-            String rutaArchivoEventos = "C:/excel/PRE-REGISTRO_Cursos_de_Capacitacion_FORMULARIO.xlsx";
-            String rutaArchivoClasificaciones = "C:/excel/PROG-INSTITUCIONAL-ENERO-2023.xlsx"; // Asegúrate de poner la ruta correcta de tu archivo de clasificaciones
-
+            Calendar calendario = Calendar.getInstance();
+            int año = calendario.get(Calendar.YEAR);
+            int periodo = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
+            
+            String rutaArchivoEventos = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\listado_de_pre_regitro_a_cursos_de_capacitacion\\";
+            int numeroSemana = obtenerUltimaSemana(rutaArchivoEventos, "listado\\_\\(Semana_\\d+\\)\\.xlsx", "Semana");
+            rutaArchivoEventos += "listado_(Semana_"+numeroSemana+").xlsx";
+            System.out.println(rutaArchivoEventos);
+            
+            String rutaArchivoClasificaciones = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\programa_institucional\\"; // Asegúrate de poner la ruta correcta de tu archivo de clasificaciones
+            numeroSemana = obtenerUltimaSemana(rutaArchivoClasificaciones, "programa_institucional\\_\\(Semana_\\d+\\)\\.xlsx", "Semana");
+            rutaArchivoClasificaciones += "programa_institucional_(Semana_"+numeroSemana+").xlsx";
+            System.out.println(rutaArchivoClasificaciones);
+            
             // Llamar al método para leer los eventos y las clasificaciones
             eventoList.addAll(leerEventosDesdeExcel(rutaArchivoEventos, rutaArchivoClasificaciones));
 
@@ -225,7 +243,50 @@ public class VizualizacionDatosController implements Initializable {
             mostrarAlerta("Error", "No se pudieron cargar los datos del archivo Excel.", AlertType.ERROR);
         }
     }
+    
+    private int obtenerUltimaSemana(String carpetaDestino, String nombreArchivo, String versionS) {
+        File carpeta = new File(carpetaDestino);
 
+        // Validar que la carpeta existe y es un directorio
+        if (!carpeta.exists() || !carpeta.isDirectory()) {
+            Logger.getLogger(this.getClass().getName()).log(Level.WARNING,
+                    "La ruta especificada no es válida: " + carpetaDestino);
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Ruta");
+            alert.setHeaderText(null);
+            alert.setContentText("Parece que el periodo no tiene información");
+            alert.showAndWait();
+            return 1; // Si no es un directorio válido, asumimos que es la primera versión
+        }
+
+        // Filtrar archivos que coincidan con el patrón "condensado_(version_X).xlsx"
+        File[] archivos = carpeta.listFiles((dir, name) -> name.matches(nombreArchivo));
+
+        if (archivos == null || archivos.length == 0) {
+            return 1; // Si no hay archivos, retornamos 1 como primera versión
+        }
+
+        // Determinar la versión más alta
+        int maxVersion = 0;
+        Pattern pattern = Pattern.compile(".*\\("+versionS+"_(\\d+)\\)\\.xlsx$"); // Patrón para extraer el número de versión
+
+        for (File archivo : archivos) {
+            String nombre = archivo.getName();
+            Matcher matcher = pattern.matcher(nombre);
+            if (matcher.matches()) {
+                try {
+                    int version = Integer.parseInt(matcher.group(1)); // Extraer y parsear el número de versión
+                    maxVersion = Math.max(maxVersion, version); // Comparar con la versión más alta encontrada
+                } catch (NumberFormatException e) {
+                    Logger.getLogger(this.getClass().getName()).log(Level.WARNING,
+                            "No se pudo parsear el número de versión en el archivo: " + nombre, e);
+                }
+            }
+        }
+
+        return maxVersion; // Retornar la siguiente versión disponible
+    }
+ 
     @FXML
     private void Exportar(ActionEvent event) {
         // Crear un FileChooser para seleccionar dónde guardar el archivo
@@ -350,14 +411,14 @@ public class VizualizacionDatosController implements Initializable {
         alert.showAndWait();
     }
 
-   @FXML
-private void buscarPorEnter(KeyEvent event) {
-    // Verifica si la tecla presionada es "Enter"
-    if (event.getCode() == KeyCode.ENTER) {
-        System.out.println("Enter presionado");
-        Buscar(); // Llama al método de búsqueda
+    @FXML
+    private void buscarPorEnter(KeyEvent event) {
+        // Verifica si la tecla presionada es "Enter"
+        if (event.getCode() == KeyCode.ENTER) {
+            System.out.println("Enter presionado");
+            Buscar(); // Llama al método de búsqueda
+        }
     }
-}
 
     @FXML
     private void Buscar() {
@@ -365,11 +426,13 @@ private void buscarPorEnter(KeyEvent event) {
 
         // Si el campo de búsqueda está vacío, mostramos una advertencia.
         if (textoBusqueda.isEmpty()) {
+            /*
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("Campo de Búsqueda Vacío");
             alert.setHeaderText(null);
             alert.setContentText("Por favor, introduce un valor para buscar.");
-            alert.showAndWait();
+            alert.showAndWait();*/
+            tableView.setItems(eventoList);
             return;
         }
 
@@ -390,21 +453,22 @@ private void buscarPorEnter(KeyEvent event) {
 
         // Si no se encuentra ningún resultado, mostramos un mensaje de información y restauramos la tabla completa.
         if (datosFiltrados.isEmpty()) {
+            /*
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Resultado de Búsqueda");
             alert.setHeaderText(null);
             alert.setContentText("No se encontró ningún resultado para \"" + textoBusqueda + "\".");
-            alert.showAndWait();
+            alert.showAndWait();*/
 
             // Restauramos la tabla con todos los datos
-            tableView.setItems(eventoList);
+            tableView.setItems(null);
         } else {
             // Si hay resultados, mostramos solo los datos filtrados.
             tableView.setItems(datosFiltrados);
         }
 
         // Limpiar el campo de búsqueda después de realizar la búsqueda
-        campoBusqueda.clear();
+        //campoBusqueda.clear();
     }
 
     @FXML
@@ -438,6 +502,7 @@ private void buscarPorEnter(KeyEvent event) {
     @FXML
     private void guardar(ActionEvent event) {
         // Lógica para guardar los datos
+        tableView.setItems(eventoList);
         boolean guardadoExitoso = guardarDatos();
 
         // Mostrar mensaje de confirmación si se guarda correctamente
@@ -492,7 +557,7 @@ private void buscarPorEnter(KeyEvent event) {
                 row.createCell(8).setCellValue(evento.getCapacitacion());
                 row.createCell(9).setCellValue(evento.getNombreFacilitador());
                 row.createCell(10).setCellValue(evento.getPeriodo());
-                row.createCell(11).setCellValue(evento.isAcreditado() ? "Sí acreditó" : "No acreditó");
+                row.createCell(11).setCellValue(evento.isAcreditado() ? "si" : "no");
             }
 
             // Autoajustar el ancho de las columnas
@@ -501,7 +566,13 @@ private void buscarPorEnter(KeyEvent event) {
             }
 
             // Guardar el archivo en C:\excel\datos_guardados.xlsx
-            String filePath = "C:/excel/datos_guardados.xlsx";
+            Calendar calendario = Calendar.getInstance();
+            int año = calendario.get(Calendar.YEAR);
+            int periodo = calendario.get(Calendar.MONTH) < 7 ? 1 : 2;
+            
+            String filePath = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos\\"+año+"\\"+periodo+"-"+año+"\\";
+            int numeroSemana = obtenerUltimaSemana(filePath, "condensado\\_\\(version_\\d+\\)\\.xlsx", "version");
+            filePath += "condensado_(version_"+(numeroSemana+1)+").xlsx";
             try (FileOutputStream fileOut = new FileOutputStream(filePath)) {
                 workbook.write(fileOut);
             }
@@ -637,6 +708,10 @@ private void buscarPorEnter(KeyEvent event) {
                 if (row.getRowNum() == 0) {
                     continue; // Saltar la fila de encabezados
                 }
+                
+                if (row.getCell(4).getStringCellValue().trim().isEmpty()) {
+                    break;
+                }
 
                 String apellidoPaterno = getCellValue(row.getCell(4));
                 String apellidoMaterno = getCellValue(row.getCell(5));
@@ -651,7 +726,7 @@ private void buscarPorEnter(KeyEvent event) {
                 Boolean acreditacion = "Sí".equalsIgnoreCase(getCellValue(row.getCell(14)));
 
                 // Obtener la clasificación desde el mapa de clasificaciones
-                String capacitacion = clasificaciones.getOrDefault(nombreEvento, "Sin clasificación");
+                String capacitacion = clasificaciones.getOrDefault(nombreEvento.split("\\.")[1].trim(), "Sin clasificación");
 
                 eventos.add(new Evento(apellidoPaterno, apellidoMaterno, nombres, rfc, sexo,
                         departamento, puesto, nombreEvento, capacitacion, nombreFacilitador, periodo, acreditacion));

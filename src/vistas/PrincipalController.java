@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -166,7 +167,10 @@ public class PrincipalController implements Initializable {
         });
 
         // Ruta del archivo Excel
-        String rutaArchivo = "C:\\Users\\sebas\\OneDrive\\Escritorio\\Arhicvos Prueba\\Gestion_de_curso\\Archivos_importados\\Año\\Periodo\\docentesRecomendable.xlsx";
+        Calendar calendario = Calendar.getInstance();
+        int año = calendario.get(Calendar.YEAR);
+        int periodo = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
+        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\docentesRecomendable.xlsx";
 
         // Leer docentes que necesitan capacitación
         List<Docente> docentes = leerDocentesConNecesidadDeCapacitacion(rutaArchivo);
@@ -259,7 +263,11 @@ public class PrincipalController implements Initializable {
 
     // Método para leer los datos de docentes y generar las notificaciones en VBox
     public void generarNotificacionesEnVBox() {
-        String rutaArchivo = "C:\\Users\\sebas\\OneDrive\\Escritorio\\Arhicvos Prueba\\Gestion_de_curso\\Archivos_importados\\Año\\Periodo\\docentesRecomendable.xlsx";
+        Calendar calendario = Calendar.getInstance();
+        int año = calendario.get(Calendar.YEAR);
+        int periodo = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
+        
+        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_cursos\\Sistema\\informacion_notificaciones\\"+año+"\\"+periodo+"-"+año+"\\docentesRecomendable.xlsx";
         List<Docente> docentesN = leerDocentesConNecesidadDeCapacitacion(rutaArchivo);
 
         // Limpiar el VBox antes de agregar nuevas notificaciones (para evitar duplicados si se llama varias veces)
