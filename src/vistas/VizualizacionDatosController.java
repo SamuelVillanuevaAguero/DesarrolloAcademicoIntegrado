@@ -244,7 +244,7 @@ public class VizualizacionDatosController implements Initializable {
         }
     }
     
-    private int obtenerUltimaSemana(String carpetaDestino, String nombreArchivo, String versionS) {
+    public int obtenerUltimaSemana(String carpetaDestino, String nombreArchivo, String versionS) {
         File carpeta = new File(carpetaDestino);
 
         // Validar que la carpeta existe y es un directorio
