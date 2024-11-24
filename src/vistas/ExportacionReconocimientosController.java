@@ -4,6 +4,7 @@
  */
 package vistas;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -25,6 +26,8 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -73,7 +76,7 @@ public class ExportacionReconocimientosController implements Initializable {
     @FXML
     private TextArea txtAreaNombreCurso;
     @FXML
-    private Button buttonRedireccionar;
+    private Label buttonRedireccionar;
 
     // Métodos de los botones de la barra superior
     public void cerrarVentana(MouseEvent event) throws IOException {
@@ -177,7 +180,50 @@ public class ExportacionReconocimientosController implements Initializable {
         txtAreaNombreCurso.setDisable(true);
         txtcodigodelcurso.setDisable(true);
     }
+    
+    public int obtenerUltimaSemana(String carpetaDestino, String nombreArchivo, String versionS, String extension) {
+        File carpeta = new File(carpetaDestino);
 
+        // Validar que la carpeta existe y es un directorio
+        if (!carpeta.exists() || !carpeta.isDirectory()) {
+            Logger.getLogger(this.getClass().getName()).log(Level.WARNING,
+                    "La ruta especificada no es válida: " + carpetaDestino);
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Ruta");
+            alert.setHeaderText(null);
+            alert.setContentText("Parece que el periodo no tiene información");
+            alert.showAndWait();
+            return 1; // Si no es un directorio válido, asumimos que es la primera versión
+        }
+
+        // Filtrar archivos que coincidan con el patrón "condensado_(version_X).xlsx"
+        File[] archivos = carpeta.listFiles((dir, name) -> name.matches(nombreArchivo));
+
+        if (archivos == null || archivos.length == 0) {
+            return 1; // Si no hay archivos, retornamos 1 como primera versión
+        }
+
+        // Determinar la versión más alta
+        int maxVersion = 0;
+        Pattern pattern = Pattern.compile(".*\\("+versionS+"_(\\d+)\\)\\."+extension+"$"); // Patrón para extraer el número de versión
+
+        for (File archivo : archivos) {
+            String nombre = archivo.getName();
+            Matcher matcher = pattern.matcher(nombre);
+            if (matcher.matches()) {
+                try {
+                    int version = Integer.parseInt(matcher.group(1)); // Extraer y parsear el número de versión
+                    maxVersion = Math.max(maxVersion, version); // Comparar con la versión más alta encontrada
+                } catch (NumberFormatException e) {
+                    Logger.getLogger(this.getClass().getName()).log(Level.WARNING,
+                            "No se pudo parsear el número de versión en el archivo: " + nombre, e);
+                }
+            }
+        }
+
+        return maxVersion; // Retornar la siguiente versión disponible
+    }
+    
     @FXML
     private void exportarReconocimientos(ActionEvent event) throws IOException {
         ExcelReader excelReader = new ExcelReader();
@@ -207,7 +253,9 @@ public class ExportacionReconocimientosController implements Initializable {
         int año = calendario.get(Calendar.YEAR);
         int periodo = calendario.get(Calendar.MONTH) < 7 ? 1 : 2;
         String rutaPlantilla = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\formato_de_hojas_membretadas_para_reconocimientos\\";
-        String directorioSalida = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\reconocimientos\\;
+        int versionPlantilla = obtenerUltimaSemana(rutaPlantilla, "formato\\_\\(Version_\\d+\\)\\.docx", "Version", "docx");
+        rutaPlantilla += "formato_(Version_"+versionPlantilla+").docx";
+        String directorioSalida = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_exportados\\"+año+"\\"+periodo+"-"+año+"\\reconocimientos\\";        
 
         String horasCurso = txtHoras.getValue(); // Asumiendo que seleccionas las horas desde un ComboBox
 
@@ -251,6 +299,7 @@ public class ExportacionReconocimientosController implements Initializable {
                 + "Reconocimientos generados exitosamente: " + totalExportados);
         exito.showAndWait();
     }
+    
 
     @FXML
     private void guardarDatos(ActionEvent event) {
@@ -448,11 +497,26 @@ public class ExportacionReconocimientosController implements Initializable {
     
    
     class ExcelReader {
-
-        private static final String ETIQUETAS_PATH = "D:/Documentos/Documentos a ocupar/Etiquetas_Cursos_2024.xlsx";
-        private static final String PROG_INSTITUCIONAL_PATH = "D:/Documentos/Documentos a ocupar/PROG-INSTITUCIONAL-ENERO-2023.xlsx";
-        private static final String NUEVO_EXCEL_PATH = "D:/Documentos/Documentos a ocupar/acreditacion.xlsx";
-
+        
+        Calendar calendario = Calendar.getInstance();
+        int año = calendario.get(Calendar.YEAR);
+        int periodo = calendario.get(Calendar.MONTH) < 7 ? 1 : 2 ;
+        
+        private String ETIQUETAS_PATH = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\listado_de_etiquetas_de_cursos\\";
+        int versionEtiquetas = obtenerUltimaSemana(ETIQUETAS_PATH , "listado\\_\\(Semana_\\d+\\)\\.xlsx", "Semana", "xlsx");
+        
+        private String PROG_INSTITUCIONAL_PATH = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\programa_institucional\\";
+        int versionProg = obtenerUltimaSemana(PROG_INSTITUCIONAL_PATH, "programa_institucional\\_\\(Semana_\\d+\\)\\.xlsx", "Semana", "xlsx");
+        
+        private String NUEVO_EXCEL_PATH = ControladorGeneral.obtenerRutaDeEjecusion()  + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos\\"+año+"\\"+periodo+"-"+año+"\\";
+        int versioCondensado = obtenerUltimaSemana(NUEVO_EXCEL_PATH, "condensado\\_\\(version_\\d+\\)\\.xlsx", "version", "xlsx");
+        public ExcelReader() {
+            ETIQUETAS_PATH += "listado_(Semana_"+versionEtiquetas+").xlsx";
+            PROG_INSTITUCIONAL_PATH += "programa_institucional_(Semana_"+versionProg+").xlsx";
+            NUEVO_EXCEL_PATH += "condensado_(version_"+versioCondensado+").xlsx";
+        }
+        
+        
         // Método para obtener nombres completos del nuevo Excel
         public List<String> obtenerDocentesAcreditadosPorCurso(String nombreCurso) throws IOException {
             List<String> nombresAcreditados = new ArrayList<>();
@@ -467,17 +531,17 @@ public class ExportacionReconocimientosController implements Initializable {
                     }
 
                     // Leer las columnas necesarias
-                    org.apache.poi.ss.usermodel.Cell nombreCell = row.getCell(0); // Columna "nombre"
-                    org.apache.poi.ss.usermodel.Cell apellido1Cell = row.getCell(1); // Columna "apellido1"
-                    org.apache.poi.ss.usermodel.Cell apellido2Cell = row.getCell(2); // Columna "apellido2"
-                    org.apache.poi.ss.usermodel.Cell cursoCell = row.getCell(5); // Columna "Nombre del Curso/Evento"
-                    org.apache.poi.ss.usermodel.Cell acreditadoCell = row.getCell(6); // Columna "Acreditó"
+                    org.apache.poi.ss.usermodel.Cell nombreCell = row.getCell(2); // Columna "nombre"
+                    org.apache.poi.ss.usermodel.Cell apellido1Cell = row.getCell(0); // Columna "apellido1"
+                    org.apache.poi.ss.usermodel.Cell apellido2Cell = row.getCell(1); // Columna "apellido2"
+                    org.apache.poi.ss.usermodel.Cell cursoCell = row.getCell(7); // Columna "Nombre del Curso/Evento"
+                    org.apache.poi.ss.usermodel.Cell acreditadoCell = row.getCell(11); // Columna "Acreditó"
 
                     // Validar datos
                     if (cursoCell != null && acreditadoCell != null && nombreCell != null
                             && apellido1Cell != null && apellido2Cell != null) {
 
-                        String curso = cursoCell.getStringCellValue();
+                        String curso = cursoCell.getStringCellValue().split("\\.")[1].trim();
                         String acreditado = acreditadoCell.getStringCellValue();
                         String nombre = nombreCell.getStringCellValue();
                         String nombreCompleto = nombreCell.getStringCellValue() + " " + apellido1Cell.getStringCellValue() + " " + apellido2Cell.getStringCellValue();
@@ -516,7 +580,7 @@ public class ExportacionReconocimientosController implements Initializable {
         public Map<String, String> buscarDetallesCurso(String nombreCurso) throws IOException {
             Map<String, String> datosCurso = new HashMap<>();
 
-            try (FileInputStream file = new FileInputStream("D:/Documentos/Documentos a ocupar/PROG-INSTITUCIONAL-ENERO-2023.xlsx")) {
+            try (FileInputStream file = new FileInputStream(PROG_INSTITUCIONAL_PATH)) {
                 Workbook workbook = new XSSFWorkbook(file);
                 Sheet sheet = workbook.getSheetAt(0);
 
@@ -525,10 +589,13 @@ public class ExportacionReconocimientosController implements Initializable {
                     if (row.getRowNum() < 8) {
                         continue;
                     }
-
+                    
+                    
                     org.apache.poi.ss.usermodel.Cell nombreCursoCell = row.getCell(1); // Columna "Nombre de los evento"
+                    //System.out.println("596: " +nombreCursoCell.getStringCellValue());
                     if (nombreCursoCell != null && nombreCursoCell.getCellType() == CELL_TYPE_STRING
                             && nombreCursoCell.getStringCellValue().equalsIgnoreCase(nombreCurso)) {
+                        
 
                         // Obtenemos cada celda relevante de la fila, usando la ruta completa de `Cell`
                         org.apache.poi.ss.usermodel.Cell competenciasCell = row.getCell(3); // Columna "Competencias a desarrollar"
