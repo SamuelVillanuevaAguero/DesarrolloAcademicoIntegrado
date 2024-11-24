@@ -20,6 +20,7 @@ import utilerias.general.ControladorGeneral;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -372,6 +373,34 @@ public class ExportacionReconocimientosController implements Initializable {
         // habilitar codigo del curso
         txtcodigodelcurso.setDisable(false);
     }
+    
+    private String obtenerDirector(String ruta, int año, int periodo) {
+        try {
+            // Abrir el archivo Excel
+            FileInputStream file = new FileInputStream(ruta);
+            Workbook libro = new XSSFWorkbook(file);
+
+            // Buscar la hoja por nombre basado en el año
+            Sheet hoja = libro.getSheet(String.valueOf(año));
+            if (hoja == null) {
+                System.err.println("No se encontró una hoja con el nombre: " + año);
+                return null; // Salir si no se encuentra la hoja
+            }
+
+            // Leer el valor de la celda en la fila 3, columna 2 (Indexada desde 0)
+            return hoja.getRow(0).getCell(1).getStringCellValue();
+
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Archivo no encontrado: " + ruta, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Error al leer el archivo Excel", ex);
+        } catch (NullPointerException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Error: Celda o fila no encontrada", ex);
+        } catch (NumberFormatException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Error al convertir el valor de la celda a número", ex);
+        }
+        return null; // Devolver 0 si ocurre algún error
+    }
 
     @FXML
     private void RedireccionarArchivos(ActionEvent event) {
@@ -423,13 +452,17 @@ public class ExportacionReconocimientosController implements Initializable {
         String codigoCurso = txtcodigodelcurso.getText();
         String nombreCurso = txtAreaNombreCurso.getText();
         String fechaCurso = txtFechaCurso.getText();
+        Calendar calendario = Calendar.getInstance();
+        int year = calendario.get(Calendar.YEAR);
+        int mesActual = calendario.get(Calendar.MONTH) + 1;
+        String nombreDirector = obtenerDirector(ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\informacion_modificable\\info.xlsx", year, (mesActual >= 1 && mesActual <= 7) ? 1 : 2);
 
         for (XWPFParagraph parrafo : documento.getParagraphs()) {
-            reemplazarMarcadores(parrafo, nombreDocente, horasCurso, codigoCurso, nombreCurso, fechaCurso);
+            reemplazarMarcadores(parrafo, nombreDocente, horasCurso, codigoCurso, nombreCurso, fechaCurso, nombreDirector);
         }
     }
 
-    private void reemplazarMarcadores(XWPFParagraph parrafo, String nombreDocente, String horasCurso, String codigoCurso, String nombreCurso, String fechaCurso) {
+    private void reemplazarMarcadores(XWPFParagraph parrafo, String nombreDocente, String horasCurso, String codigoCurso, String nombreCurso, String fechaCurso, String nombreDirector) {
    // Convierte todos los valores a mayúsculas
     nombreDocente = nombreDocente.toUpperCase();
     horasCurso = horasCurso.toUpperCase();
@@ -446,7 +479,8 @@ public class ExportacionReconocimientosController implements Initializable {
 
     // Si contiene algún marcador, realiza el reemplazo
     if (textoCompleto.contains("{nombreDocente}") || textoCompleto.contains("{horasCurso}") 
-            || textoCompleto.contains("{codigoCurso}") || textoCompleto.contains("{nombreCurso}") || textoCompleto.contains("{fechaCurso}")) {
+            || textoCompleto.contains("{codigoCurso}") || textoCompleto.contains("{nombreCurso}") || textoCompleto.contains("{fechaCurso}")
+            || textoCompleto.contains("{nombreDirector}")) {
 
         // Elimina todos los *runs* existentes
         for (int i = parrafo.getRuns().size() - 1; i >= 0; i--) {
@@ -459,7 +493,8 @@ public class ExportacionReconocimientosController implements Initializable {
                 .replace("{horasCurso}", horasCurso)
                 .replace("{codigoCurso}", codigoCurso)
                 .replace("{nombreCurso}", nombreCurso)
-                .replace("{fechaCurso}", fechaCurso);
+                .replace("{fechaCurso}", fechaCurso)
+                .replace("{nombreDirector}", nombreDirector);
 
         // Divide el texto en fragmentos
         String[] fragmentos = textoCompleto.split("(?<=\\})|(?=\\{)");
@@ -476,6 +511,8 @@ public class ExportacionReconocimientosController implements Initializable {
                 crearRunConEstilo(parrafo, fragmento, "Montserrat", 18, "595959", true, false);
             } else if (fragmento.equals(fechaCurso)) {
                 crearRunConEstilo(parrafo, fragmento, "Montserrat", 11, "595959", false, false);
+            } else if (fragmento.equals(nombreDirector)){
+                crearRunConEstilo(parrafo, fragmento, "Montserrat Extra Bold", 12, "595959", true, false);
             } else {
                 // Para texto normal, usa un estilo predeterminado
                 crearRunConEstilo(parrafo, fragmento, "Montserrat", 11, "595959", false, false);
