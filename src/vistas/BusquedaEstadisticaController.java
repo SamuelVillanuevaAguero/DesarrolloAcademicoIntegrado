@@ -72,8 +72,10 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.w3c.dom.traversal.NodeFilter;
+import vistas.PrincipalController.Docente;
 
 /*import com.itextpdf.text.Document;
 import com.itextpdf.text.Element;
@@ -285,46 +287,280 @@ public class BusquedaEstadisticaController implements Initializable {
         }
     }
 
-    public void exportarArchivo(String rutaArchivo, Stage stage, int formato) {
+    public void exportarArchivo(String rutaArchivo, String rutaExportacion, int version, int formato) {
+        // Validar la ruta del archivo original
+        if (rutaArchivo == null || rutaArchivo.isEmpty()) {
+            System.out.println("La ruta del archivo original es inválida.");
+            return;
+        }
+
+        // Validar la ruta de exportación
+        if (rutaExportacion == null || rutaExportacion.isEmpty()) {
+            System.out.println("La ruta de exportación es inválida.");
+            return;
+        }
+
         try (FileInputStream fileInputStream = new FileInputStream(rutaArchivo); Workbook workbook = new XSSFWorkbook(fileInputStream)) {
 
-            Sheet sheet = workbook.getSheetAt(0); // Obtener la primera hoja
+            // Ajustar el nombre del archivo según el formato
+            String extension = (formato == 1) ? ".pdf" : ".xlsx";
+            File archivoExportado = new File(rutaExportacion + "reporte_(Version_" + (version + 1) + ")" + extension);
 
-            // Usar FileChooser para seleccionar la ubicación de exportación
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Guardar como");
+            // Modificar el contenido del archivo si el formato es Excel
+            if (formato == 2) {
+                int periodo = comboPeriodo.getValue().toString().equalsIgnoreCase("Enero - Julio") ? 1 : 2;
+                llenarExcel(workbook, tabla, comboAño.getValue(), periodo);
 
-            // Definir el tipo de archivo según el parámetro formato
-            if (formato == 1) {
-                // Formato PDF
-                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
-                fileChooser.setInitialFileName("copia_" + new File(rutaArchivo).getName().replace(".xlsx", ".pdf"));
-            } else if (formato == 2) {
-                // Formato Excel
-                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Excel Files", "*.xlsx"));
-                fileChooser.setInitialFileName("copia_" + new File(rutaArchivo).getName());
-            }
-
-            File fileToSave = fileChooser.showSaveDialog(stage);
-            if (fileToSave != null) {
-                if (formato == 1) {
-                    // Guardar como PDF usando Aspose.Cells
-                    exportarAPDF(rutaArchivo, fileToSave);
-                    System.out.println("Archivo exportado exitosamente como PDF en: " + fileToSave.getAbsolutePath());
-                } else if (formato == 2) {
-                    // Guardar como Excel
-                    try (FileOutputStream outputStream = new FileOutputStream(fileToSave)) {
-                        workbook.write(outputStream);
-                    }
-                    System.out.println("Archivo exportado exitosamente como Excel en: " + fileToSave.getAbsolutePath());
+                // Guardar los cambios en el archivo exportado
+                try (FileOutputStream outputStream = new FileOutputStream(archivoExportado)) {
+                    workbook.write(outputStream); // Guardar los cambios en el archivo de destino
                 }
+                System.out.println("Archivo exportado exitosamente como Excel en: " + archivoExportado.getAbsolutePath());
+            } else if (formato == 1) {
+                // Exportar como PDF (implementación pendiente)
+                exportarAPDF(workbook, archivoExportado);
+                System.out.println("Archivo exportado exitosamente como PDF en: " + archivoExportado.getAbsolutePath());
             } else {
-                System.out.println("Exportación cancelada.");
+                System.out.println("Formato no soportado.");
             }
 
         } catch (IOException e) {
+            System.out.println("Error durante la exportación: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    public void llenarExcel(Workbook workbook, TableView<filaDato> tablaJavaFX, int año, int periodo) {
+        try {
+            CellStyle estilo = crearEstiloCelda(workbook);
+            Sheet sheet = workbook.getSheetAt(0); // Obtener la primera hoja
+            int filaInicio = 10; // Fila donde inicia la tabla en el Excel (basado en tu imagen)
+            int totalAP = 0;
+            int totalFD = 0;
+
+            // Obtener los datos de la tabla de JavaFX
+            ObservableList<filaDato> listaDocentes = tablaJavaFX.getItems();
+
+            //Datos generales
+            Row fila = sheet.getRow(4);
+            if (fila == null) {
+                fila = sheet.createRow(4);
+            }
+            Cell celda = fila.createCell(3);
+            celda.setCellValue(comboDepartamento.getValue().toUpperCase());
+            celda.setCellStyle(estiloNegrillas(workbook));
+            
+            //Año
+            fila = sheet.getRow(5);
+            if (fila == null) {
+                fila = sheet.createRow(5);
+            }
+            celda = fila.createCell(3);
+            celda.setCellValue("AÑO "+comboAño.getValue().toString().toUpperCase());
+            celda.setCellStyle(estiloNegrillas(workbook));       
+
+            // Llenar las filas del archivo Excel
+            int y = 0;
+
+            Map<String, Integer> mapaDocente = new HashMap<>();
+
+            for (int i = 0; i < listaDocentes.size(); i++) {
+
+                filaDato filaDato = listaDocentes.get(i);
+
+                // Obtener o crear la fila en el Excel
+                fila = sheet.getRow(filaInicio + y);
+                if (fila == null) {
+                    fila = sheet.createRow(filaInicio + y);
+                }
+
+                if (filaDato.getAcreditado().equalsIgnoreCase("si")) {
+                    // Escribir las celdas
+
+                    if (mapaDocente.containsKey(filaDato.getNombre())) {
+                        System.out.println("YA EXISTE");
+                        int row = mapaDocente.get(filaDato.getNombre());
+                        fila = sheet.getRow(row);
+                        // Verificar el tipo de capacitación para asignar a la columna adecuada
+                        if (filaDato.getTipoCapacitacion().equalsIgnoreCase("FD")) {
+                            totalFD += filaDato.getNoCursos();
+                            celda = fila.createCell(3);
+                            celda.setCellStyle(estilo);
+                            celda.setCellValue(filaDato.getNoCursos()); // Columna C: Número de curso (AP)
+                        } else {
+                            totalAP += filaDato.getNoCursos();
+                            celda = fila.createCell(4);
+                            celda.setCellStyle(estilo);
+                            celda.setCellValue(filaDato.getNoCursos()); // Columna D: Número de curso (FD)
+                        }
+                    } else {
+                        System.out.println("NO EXISTE");
+                        mapaDocente.put(filaDato.getNombre(), filaInicio + y);
+                        y++;
+                        celda = fila.createCell(1);
+                        celda.setCellStyle(estilo);
+                        celda.setCellValue(y); // Columna A: Número (índice)
+
+                        celda = fila.createCell(2);
+                        celda.setCellStyle(estilo);
+                        celda.setCellValue(filaDato.getNombre()); // Columna B: Nombre del docente
+
+                        // Verificar el tipo de capacitación para asignar a la columna adecuada
+                        if (filaDato.getTipoCapacitacion().equalsIgnoreCase("FD")) {
+                            totalFD += filaDato.getNoCursos();
+                            celda = fila.createCell(3);
+                            celda.setCellStyle(estilo);
+                            celda.setCellValue(filaDato.getNoCursos()); // Columna C: Número de curso (AP)
+
+                            celda = fila.createCell(4);
+                            celda.setCellStyle(estilo);
+                            celda.setCellValue(""); // Columna C: Número de curso (AP)
+                        } else {
+                            totalAP += filaDato.getNoCursos();
+                            celda = fila.createCell(3);
+                            celda.setCellStyle(estilo);
+                            celda.setCellValue(""); // Columna D: Número de curso (FD)
+
+                            celda = fila.createCell(4);
+                            celda.setCellStyle(estilo);
+                            celda.setCellValue(filaDato.getNoCursos()); // Columna D: Número de curso (FD)
+                        }
+                    }
+
+                }
+
+            }
+
+            fila = sheet.getRow(filaInicio + y);
+            if (fila == null) {
+                fila = sheet.createRow(filaInicio + y);
+            }
+
+            celda = fila.createCell(2);
+            celda.setCellStyle(estilo);
+            celda.setCellValue("TOTAL");
+
+            celda = fila.createCell(3);
+            celda.setCellStyle(estilo);
+            celda.setCellValue(totalFD);
+
+            celda = fila.createCell(4);
+            celda.setCellStyle(estilo);
+            celda.setCellValue(totalAP);
+
+            fila = sheet.getRow(filaInicio + y + 3);
+            if (fila == null) {
+                fila = sheet.createRow(filaInicio + y + 3);
+            }
+
+            celda = fila.createCell(3);
+            celda.setCellStyle(estiloNegrillas(workbook));
+            celda.setCellValue(obtenerJefe("C:\\Users\\Samue\\Documents\\NetBeansProjects\\DesarrolloAcademico\\Gestion_de_Cursos\\Sistema\\informacion_modificable\\info.xlsx", año, periodo).toUpperCase());
+
+            // Combinar las celdas desde (fila 0, columna 0) hasta (fila 0, columna 3)
+            CellRangeAddress rango = new CellRangeAddress(filaInicio + y + 3, filaInicio + y + 3, 3, 4); // Fila inicial, Fila final, Columna inicial, Columna final
+            sheet.addMergedRegion(rango);
+
+            fila = sheet.getRow(filaInicio + y + 4);
+            if (fila == null) {
+                fila = sheet.createRow(filaInicio + y + 4);
+            }
+
+            celda = fila.createCell(3);
+            celda.setCellStyle(estiloNegrillas(workbook));
+            celda.setCellValue("JEFE DEL DEPARTAMENTO DE DESARROLLO ACADEMICO");
+
+            // Combinar las celdas desde (fila 0, columna 0) hasta (fila 0, columna 3)
+            rango = new CellRangeAddress(filaInicio + y + 4, filaInicio + y + 4, 3, 4); // Fila inicial, Fila final, Columna inicial, Columna final
+            sheet.addMergedRegion(rango);
+
+            System.out.println("Archivo Excel actualizado correctamente.");
+
+        } catch (Exception e) {
+            System.err.println("Error al llenar el archivo Excel: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private CellStyle crearEstiloCelda(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        style.setBorderTop(CellStyle.BORDER_THIN);
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBorderLeft(CellStyle.BORDER_THIN);
+        style.setBorderRight(CellStyle.BORDER_THIN);
+        return style;
+    }
+
+    private CellStyle estiloNegrillas(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+
+        // Crear fuente en negritas
+        Font font = workbook.createFont();
+        font.setBold(true); // Hacer la fuente en negrita
+        style.setFont(font);
+
+        // Configurar alineación centrada
+        style.setAlignment(CellStyle.ALIGN_CENTER); // Centrar horizontalmente
+        style.setVerticalAlignment(CellStyle.VERTICAL_CENTER); // Centrar verticalmente
+
+        // Configurar bordes
+        return style;
+    }
+
+    public void llenarExcel(String rutaArchivo, TableView<filaDato> tablaJavaFX) {
+        try (FileInputStream fileInputStream = new FileInputStream(rutaArchivo); Workbook workbook = new XSSFWorkbook(fileInputStream)) {
+
+            Sheet sheet = workbook.getSheetAt(0); // Obtener la primera hoja
+            int filaInicio = 10; // Fila donde inicia la tabla en el Excel (basado en tu imagen)
+
+            // Obtener los datos de la tabla de JavaFX
+            ObservableList<filaDato> listaDocentes = tablaJavaFX.getItems();
+
+            // Llenar las filas del archivo Excel
+            for (int i = 0; i < listaDocentes.size(); i++) {
+                filaDato filaDato = listaDocentes.get(i);
+
+                // Obtener o crear la fila en el Excel
+                Row fila = sheet.getRow(filaInicio + i);
+                if (fila == null) {
+                    fila = sheet.createRow(filaInicio + i);
+                }
+
+                // Escribir las celdas
+                fila.createCell(1).setCellValue(i + 1); // Columna A: Número (índice)
+                fila.createCell(2).setCellValue(filaDato.getNombre()); // Columna B: Nombre del docente
+                if (filaDato.getTipoCapacitacion().equalsIgnoreCase("AP")) {
+                    fila.createCell(3).setCellValue(filaDato.getNoCursos()); // Columna C: Número de curso
+                } else {
+                    fila.createCell(4).setCellValue(filaDato.getNoCursos()); // Columna C: Número de curso
+                }
+
+            }
+
+            // Guardar el archivo modificado
+            try (FileOutputStream fileOutputStream = new FileOutputStream(rutaArchivo)) {
+                workbook.write(fileOutputStream);
+            }
+
+            System.out.println("Archivo Excel actualizado correctamente.");
+
+        } catch (IOException e) {
+            System.err.println("Error al procesar el archivo Excel: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void exportarAPDF(Workbook workbook, File archivoExportado) {
+        /*try {
+            // Cargar el archivo Excel con Aspose.Cells
+
+            // Guardar el archivo Excel como PDF
+            workbook.save(fileToSave.getAbsolutePath(), SaveFormat.PDF);
+
+            System.out.println("Archivo exportado exitosamente como PDF en: " + fileToSave.getAbsolutePath());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }*/
     }
 
     public void exportarAPDF(String rutaArchivo, File fileToSave) {
@@ -529,7 +765,7 @@ public class BusquedaEstadisticaController implements Initializable {
         return data;
     }*/
 
-    /*private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo, String tipoCapacitacion, String departamento, String acreditacion, String nivel) {
+ /*private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo, String tipoCapacitacion, String departamento, String acreditacion, String nivel) {
         ObservableList<filaDato> data = FXCollections.observableArrayList();
         Map<String, filaDato> dataMap = new HashMap<>();
 
@@ -669,7 +905,6 @@ public class BusquedaEstadisticaController implements Initializable {
                         // Leer la celda de la fecha y parsear al formato "dd/MMM/yyyy" con meses en letras
                         String[] mes = row.getCell(10).getStringCellValue().split(" ");
                         periodoCell = mes[mes.length - 1].substring(0, 3).toLowerCase();
-
 
                         if (!periodoCell.isEmpty()) {
                             // Crear un formateador que soporte abreviaturas de meses en español
@@ -954,7 +1189,7 @@ public class BusquedaEstadisticaController implements Initializable {
         comboAño.getItems().addAll(getAvailableYears(ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos"));
         comboPeriodo.getItems().addAll("Enero - Julio", "Agosto - Diciembre");
         comboFormato.getItems().addAll("PDF", "EXCEL");
-        
+
         comboAño.setValue(currentYear);
         comboPeriodo.setValue(mesActual == 2 ? "Enero - Julio" : "Agosto - Diciembre");
 
@@ -1029,14 +1264,20 @@ public class BusquedaEstadisticaController implements Initializable {
         });
 
         botonExportar.setOnMouseClicked(event -> {
-            String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\informacion_modificable\\reporte.xlsx";
+            int año = comboAño.getValue();
+            int periodo = comboPeriodo.getValue().equalsIgnoreCase("Enero - Julio") ? 1 : 2;
+            String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\" + año + "\\" + periodo + "-" + año + "\\formato_de_reporte_para_docentes_capacitados\\";
+            int version = obtenerUltimaSemana(rutaArchivo, "formato\\_\\(Version_\\d+\\)\\.xlsx", "Version", "xlsx");
+            rutaArchivo += "formato_(Version_" + version + ").xlsx";
 
+            String rutaExportacion = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_exportados\\" + año + "\\" + periodo + "-" + año + "\\reportes_estadisticos\\";
+            int versionReporte = obtenerUltimaSemana(rutaExportacion, "reporte\\_\\(Version_\\d+\\)\\.xlsx", "Version", "xlsx");
             switch (comboFormato.getValue() == null ? "default" : comboFormato.getValue()) {
                 case "PDF":
-                    exportarArchivo(rutaArchivo, (Stage) botonExportar.getScene().getWindow(), 1);
+                    //exportarArchivo(rutaArchivo, rutaExportacion, 1);
                     break;
                 case "EXCEL":
-                    exportarArchivo(rutaArchivo, (Stage) botonExportar.getScene().getWindow(), 2);
+                    exportarArchivo(rutaArchivo, rutaExportacion, versionReporte, 2);
                     break;
                 default:
             }
@@ -1050,6 +1291,77 @@ public class BusquedaEstadisticaController implements Initializable {
             }
         });
 
+    }
+
+    public int obtenerUltimaSemana(String carpetaDestino, String nombreArchivo, String versionS, String extension) {
+        File carpeta = new File(carpetaDestino);
+
+        // Validar que la carpeta existe y es un directorio
+        if (!carpeta.exists() || !carpeta.isDirectory()) {
+            Logger.getLogger(this.getClass().getName()).log(Level.WARNING,
+                    "La ruta especificada no es válida: " + carpetaDestino);
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Ruta");
+            alert.setHeaderText(null);
+            alert.setContentText("Parece que el periodo no tiene información");
+            alert.showAndWait();
+            return 1; // Si no es un directorio válido, asumimos que es la primera versión
+        }
+
+        // Filtrar archivos que coincidan con el patrón "condensado_(version_X).xlsx"
+        File[] archivos = carpeta.listFiles((dir, name) -> name.matches(nombreArchivo));
+
+        if (archivos == null || archivos.length == 0) {
+            return 1; // Si no hay archivos, retornamos 1 como primera versión
+        }
+
+        // Determinar la versión más alta
+        int maxVersion = 0;
+        Pattern pattern = Pattern.compile(".*\\(" + versionS + "_(\\d+)\\)\\." + extension + "$"); // Patrón para extraer el número de versión
+
+        for (File archivo : archivos) {
+            String nombre = archivo.getName();
+            Matcher matcher = pattern.matcher(nombre);
+            if (matcher.matches()) {
+                try {
+                    int version = Integer.parseInt(matcher.group(1)); // Extraer y parsear el número de versión
+                    maxVersion = Math.max(maxVersion, version); // Comparar con la versión más alta encontrada
+                } catch (NumberFormatException e) {
+                    Logger.getLogger(this.getClass().getName()).log(Level.WARNING,
+                            "No se pudo parsear el número de versión en el archivo: " + nombre, e);
+                }
+            }
+        }
+
+        return maxVersion;
+    }
+
+    private String obtenerJefe(String ruta, int año, int periodo) {
+        try {
+            // Abrir el archivo Excel
+            FileInputStream file = new FileInputStream(ruta);
+            Workbook libro = new XSSFWorkbook(file);
+
+            // Buscar la hoja por nombre basado en el año
+            Sheet hoja = libro.getSheet(String.valueOf(año));
+            if (hoja == null) {
+                System.err.println("No se encontró una hoja con el nombre: " + año);
+                return null; // Salir si no se encuentra la hoja
+            }
+
+            // Leer el valor de la celda en la fila 3, columna 2 (Indexada desde 0)
+            return hoja.getRow(1).getCell(1).getStringCellValue();
+
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Archivo no encontrado: " + ruta, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Error al leer el archivo Excel", ex);
+        } catch (NullPointerException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Error: Celda o fila no encontrada", ex);
+        } catch (NumberFormatException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, "Error al convertir el valor de la celda a número", ex);
+        }
+        return null; // Devolver 0 si ocurre algún error
     }
 
     public void cerrarVentana(MouseEvent event) throws IOException {

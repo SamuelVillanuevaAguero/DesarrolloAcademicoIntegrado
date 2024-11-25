@@ -331,8 +331,8 @@ public class VizualizacionDatosController implements Initializable {
 
         try {
             // Configuración de rutas
-            String desktopPath = System.getProperty("user.home") + File.separator + "Desktop";
-            String gestionCursosPath = desktopPath + File.separator + "Gestion_de_Cursos";
+            //String desktopPath = System.getProperty("user.home") + File.separator + "Desktop";
+            String gestionCursosPath = ControladorGeneral.obtenerRutaDeEjecusion() + File.separator + "Gestion_de_Cursos";
 
             LocalDate fechaActual = LocalDate.now();
             int mesActual = fechaActual.getMonthValue();
@@ -398,7 +398,7 @@ public class VizualizacionDatosController implements Initializable {
             new File(rutaExportacion).mkdirs();
 
             // Guardar el archivo
-            String nombreArchivo = "listAsis_" + cursoIngresado.replace(" ", "_") + ".xlsx";
+            String nombreArchivo = "lista_asistencia_" + cursoIngresado.replace(" ", "_") + ".xlsx";
             String rutaCompleta = rutaExportacion + File.separator + nombreArchivo;
 
             try (FileOutputStream fileOut = new FileOutputStream(rutaCompleta)) {
@@ -514,8 +514,8 @@ public class VizualizacionDatosController implements Initializable {
 
     // Método para obtener el archivo de programa institucional más reciente
     private File obtenerProgramaInstitucionalReciente(String año, String periodo) throws IOException {
-        String rutaProgramas = System.getProperty("user.home") + File.separator
-                + "Desktop" + File.separator + "Gestion_de_Cursos"
+        String rutaProgramas = ControladorGeneral.obtenerRutaDeEjecusion() 
+                + File.separator + "Gestion_de_Cursos"
                 + File.separator + "Archivos_importados"
                 + File.separator + año
                 + File.separator + periodo

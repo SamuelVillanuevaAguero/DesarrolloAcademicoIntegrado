@@ -65,7 +65,7 @@ public class ExportacionReconocimientosController implements Initializable {
     @FXML
     private TextField txtNombreInstructor;
     @FXML
-    private TextField txtFechaCurso;
+    private TextArea txtFechaCurso;
     @FXML
     private ComboBox<String> txtFormatos;
     @FXML
@@ -95,6 +95,14 @@ public class ExportacionReconocimientosController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         // Configuración inicial de eventos de los botones de la barra superior
+        buttonRedireccionar.setOnMouseClicked(event -> {
+            try {
+                ControladorGeneral.regresar(event, "ImportacionArchivos", getClass());
+            } catch (IOException ex) {
+                Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });
+        
         botonCerrar.setOnMouseClicked(event -> {
             try {
                 cerrarVentana(event);
@@ -160,6 +168,8 @@ public class ExportacionReconocimientosController implements Initializable {
                 // Si no se encuentra el nombre del curso, mostrar un mensaje informativo
                 Alert alert = new Alert(Alert.AlertType.INFORMATION, "No se encontró ningún curso con ese código.");
                 alert.showAndWait();
+                txtcodigodelcurso.setText("");;
+                txtcodigodelcurso.setDisable(false);
             }
         } catch (IOException e) {
             // Mostrar un mensaje de error en caso de problemas con el archivo Excel
@@ -228,7 +238,7 @@ public class ExportacionReconocimientosController implements Initializable {
     @FXML
     private void exportarReconocimientos(ActionEvent event) throws IOException {
         ExcelReader excelReader = new ExcelReader();
-
+        
         // Obtener el curso seleccionado desde la interfaz
         String nombreCurso = txtAreaNombreCurso.getText(); // Asumiendo que aquí está el nombre del curso seleccionado
 
@@ -253,11 +263,20 @@ public class ExportacionReconocimientosController implements Initializable {
         Calendar calendario = Calendar.getInstance();
         int año = calendario.get(Calendar.YEAR);
         int periodo = calendario.get(Calendar.MONTH) < 7 ? 1 : 2;
+        
         String rutaPlantilla = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\formato_de_hojas_membretadas_para_reconocimientos\\";
+        
         int versionPlantilla = obtenerUltimaSemana(rutaPlantilla, "formato\\_\\(Version_\\d+\\)\\.docx", "Version", "docx");
         rutaPlantilla += "formato_(Version_"+versionPlantilla+").docx";
-        String directorioSalida = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_exportados\\"+año+"\\"+periodo+"-"+año+"\\reconocimientos\\";        
+        
+        String directorioBase = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_exportados\\"+año+"\\"+periodo+"-"+año+"\\reconocimientos\\";        
 
+        // Crear subdirectorio con el nombre del curso
+    String directorioCurso = directorioBase + nombreCurso.trim().replace(" ", "_") + "\\";
+    File dirCurso = new File(directorioCurso);
+    if (!dirCurso.exists()) {
+        dirCurso.mkdirs();
+    }
         String horasCurso = txtHoras.getValue(); // Asumiendo que seleccionas las horas desde un ComboBox
 
         // Verificar el formato seleccionado
@@ -280,12 +299,12 @@ public class ExportacionReconocimientosController implements Initializable {
                 totalExportados++;
             } else if (formatoSeleccionado.equals("Word")) {
                 // Generar documento Word
-                String archivoWordGenerado = generarDocumentoWord(rutaPlantilla, directorioSalida, nombreDocente, horasCurso);
+                String archivoWordGenerado = generarDocumentoWord(rutaPlantilla, directorioCurso, nombreDocente, horasCurso);
                 totalExportados++;
             } else if (formatoSeleccionado.equals("Ambos")) {
                 // Generar tanto PDF como Word
 
-                String archivoWordGenerado = generarDocumentoWord(rutaPlantilla, directorioSalida, nombreDocente, horasCurso);
+                String archivoWordGenerado = generarDocumentoWord(rutaPlantilla, directorioCurso, nombreDocente, horasCurso);
                 totalExportados++;
                 }
             } catch (IOException e) {

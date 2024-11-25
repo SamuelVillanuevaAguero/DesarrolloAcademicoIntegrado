@@ -13,6 +13,8 @@ import javafx.scene.control.Alert.AlertType;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.net.URL;
+import java.time.Year;
+import java.util.Calendar;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,7 +45,7 @@ public class ModificacionDatosController implements Initializable {
     @FXML
     private TextField jefeDeptoField;
     @FXML
-    private Spinner<Integer> totalDocentesField;
+    private Spinner<Integer> totalDocentes;
     @FXML
     private Spinner<Integer> año;
     @FXML
@@ -97,9 +99,9 @@ public class ModificacionDatosController implements Initializable {
             // Actualizar período y total de docentes
             int periodo = periodoEscolar.getValue().equals("Enero-Julio") ? 1 : 2;
             int fila = periodo == 1 ? 3 : 4; // Fila 4 para Enero-Julio, Fila 5 para Agosto-Diciembre
-            
+
             Row row = sheet.getRow(fila);
-            row.createCell(1).setCellValue(totalDocentesField.getValue());
+            row.createCell(1).setCellValue(totalDocentes.getValue());
             //row.createCell(2).setCellValue(totalDocentesField.getValue());
 
             // Ajustar el ancho de las columnas automáticamente
@@ -111,52 +113,115 @@ public class ModificacionDatosController implements Initializable {
             try (FileOutputStream fileOut = new FileOutputStream(rutaArchivo)) {
                 workbook.write(fileOut);
                 mostrarAlerta("Éxito", "Datos guardados exitosamente", AlertType.INFORMATION);
-            }
 
+                // Limpiar campos después de guardar exitosamente
+                restablecerCamposValoresIniciales();
+            }
         } catch (IOException e) {
             mostrarAlerta("Error", "No se pudo guardar el archivo: " + e.getMessage(), AlertType.ERROR);
             e.printStackTrace();
         }
     }
 
-    private boolean validarCampos() {
-        if (!directorField.getText().matches("[a-zA-ZáéíóúÁÉÍÓÚ\\s]+")) {
-            mostrarAlerta("Validación", "El campo 'Director' solo debe contener letras.", AlertType.WARNING);
-            return false;
-        }
-        if (!coordinadorField.getText().matches("[a-zA-ZZáéíóúÁÉÍÓÚ\\s]+")) {
-            mostrarAlerta("Validación", "El campo 'Coordinador' solo debe contener letras.", AlertType.WARNING);
-            return false;
-        }
-        if (!jefeDeptoField.getText().matches("[a-zA-ZZáéíóúÁÉÍÓÚ\\s]+")) {
-            mostrarAlerta("Validación", "El campo 'Jefe de Departamento' solo debe contener letras.", AlertType.WARNING);
-            return false;
-        }
-        if (totalDocentesField.getValue() == null || totalDocentesField.getValue() < 0) {
-            mostrarAlerta("Validación", "El campo 'Total de Docentes' solo debe contener números positivos.", AlertType.WARNING);
-            return false;
-        }
-        if (periodoEscolar.getValue() == null) {
-            mostrarAlerta("Validación", "Por favor selecciona un período escolar.", AlertType.WARNING);
-            return false;
-        }
-        return true;
-    }
-
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        SpinnerValueFactory<Integer> valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 800, 100);
-        totalDocentesField.setValueFactory(valueFactory);
-        totalDocentesField.setEditable(true);
+        // Configuración del Spinner de docentes
+        SpinnerValueFactory<Integer> docentesFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(100, 800, 100);
+        totalDocentes.setValueFactory(docentesFactory);
+        totalDocentes.setEditable(true);
+        
+        periodoEscolar.setValue((Calendar.getInstance().get(Calendar.MONTH) + 1) < 7 ? "Enero-Julio" : "Agosto-Diciembre");
+        // Configuración del Spinner de año
+        int añoActual = Calendar.getInstance().get(Calendar.YEAR); // Año actual fijo para el sistema
+        SpinnerValueFactory<Integer> añoFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(2000, 2100, añoActual);
+        año.setValueFactory(añoFactory);
+        año.setEditable(true);
+        // Validación corregida para el Spinner de año
 
-        SpinnerValueFactory<Integer> añoValueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(2000, 2100, 2024);
-        año.setValueFactory(añoValueFactory);
+        // Validación para el Spinner de docentes
+        totalDocentes.getEditor().focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) { // Cuando pierde el foco
+                try {
+                    String text = totalDocentes.getEditor().getText();
+                    if (text.isEmpty()) {
+                        totalDocentes.getValueFactory().setValue(100);
+                    } else {
+                        int value = Integer.parseInt(text);
+                        if (value < 100) {
+                            mostrarAlerta("Validación", "El número mínimo de docentes debe ser 100", AlertType.WARNING);
+                            totalDocentes.getValueFactory().setValue(100);
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    totalDocentes.getValueFactory().setValue(100);
+                }
+            }
+        });
+
+        // Validación corregida para el Spinner de año
+        año.getEditor().focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) { // Cuando pierde el foco
+                try {
+                    String text = año.getEditor().getText();
+                    System.out.println("AÑO: "+text);
+                    int value;
+
+                    if (text.isEmpty()) {
+                        System.out.println("Blanco");
+                        año.getValueFactory().setValue(añoActual);
+                    } else {
+                        value = Integer.parseInt(text);
+                        if (value < 2000 || value > 2100) {
+                            System.out.println("2000, 2100");
+                            mostrarAlerta("Validación", "El año debe estar entre 2000 y 2100", AlertType.WARNING);
+                            año.getValueFactory().setValue(añoActual);
+                            
+                        } else {
+                            System.out.println("Else");
+                            año.getValueFactory().setValue(value);
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Catch");
+                    año.getValueFactory().setValue(añoActual);
+                }
+            }
+        });
+
+        // Solo permitir números en los Spinners
+        totalDocentes.getEditor().textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                totalDocentes.getEditor().setText(oldValue);
+            }
+        });
+
+        // Solo permitir números en el Spinner de año
+        año.getEditor().textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                año.getEditor().setText(oldValue);
+            } else if (!newValue.isEmpty()) {
+                try {
+                    int value = Integer.parseInt(newValue);
+                    if (value > 2100) {
+                        año.getEditor().setText(oldValue);
+                    }
+                } catch (NumberFormatException e) {
+                    año.getEditor().setText(oldValue);
+                }
+            }
+        });
 
         periodoEscolar.getItems().addAll("Enero-Julio", "Agosto-Diciembre");
 
         // Configurar eventos de botones
         botonGuardar.setOnMouseClicked(this::guardarDatosEnExcel);
-        botonCerrar.setOnMouseClicked(this::cerrarVentana);
+        botonCerrar.setOnMouseClicked(event -> {
+            try {
+                ControladorGeneral.cerrarVentana(event, "¿Quieres cerrar sesión?", getClass());
+            } catch (IOException ex) {
+                Logger.getLogger(ModificacionDatosController.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });
         botonMinimizar.setOnMouseClicked(this::minimizarVentana);
         botonRegresar.setOnMouseClicked(event -> {
             try {
@@ -165,41 +230,98 @@ public class ModificacionDatosController implements Initializable {
                 Logger.getLogger(ModificacionDatosController.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
-        botonLimpiar.setOnMouseClicked(event -> limpiarCampos());
+        botonLimpiar.setOnMouseClicked(event -> restablecerCamposValoresIniciales());
     }
 
+    private boolean validarCampos() {
+        // Verificar si todos los campos están vacíos
+        boolean todosVacios = directorField.getText().trim().isEmpty()
+                && coordinadorField.getText().trim().isEmpty()
+                && jefeDeptoField.getText().trim().isEmpty()
+                && periodoEscolar.getValue() == null;
+
+        if (todosVacios) {
+            mostrarAlerta("Validación", "Todos los campos son obligatorios. Por favor, complete el formulario.", AlertType.WARNING);
+            return false;
+        }
+
+        // Validaciones individuales
+        if (directorField.getText().trim().isEmpty()) {
+            mostrarAlerta("Validación", "Por favor, ingrese el nombre del Director.", AlertType.WARNING);
+            directorField.requestFocus();
+            return false;
+        }
+
+        if (coordinadorField.getText().trim().isEmpty()) {
+            mostrarAlerta("Validación", "Por favor, ingrese el nombre del Coordinador.", AlertType.WARNING);
+            coordinadorField.requestFocus();
+            return false;
+        }
+
+        if (jefeDeptoField.getText().trim().isEmpty()) {
+            mostrarAlerta("Validación", "Por favor, ingrese el nombre del Jefe de Departamento.", AlertType.WARNING);
+            jefeDeptoField.requestFocus();
+            return false;
+        }
+
+        if (periodoEscolar.getValue() == null) {
+            mostrarAlerta("Validación", "Por favor, seleccione un periodo escolar.", AlertType.WARNING);
+            periodoEscolar.requestFocus();
+            return false;
+        }
+
+        // Validar formato de nombres solo si no están vacíos
+        if (!directorField.getText().matches("[a-zA-ZáéíóúÁÉÍÓÚ\\s]+")) {
+            mostrarAlerta("Validación", "El campo 'Director' solo debe contener letras.", AlertType.WARNING);
+            directorField.requestFocus();
+            return false;
+        }
+        if (!coordinadorField.getText().matches("[a-zA-ZáéíóúÁÉÍÓÚ\\s]+")) {
+            mostrarAlerta("Validación", "El campo 'Coordinador' solo debe contener letras.", AlertType.WARNING);
+            coordinadorField.requestFocus();
+            return false;
+        }
+        if (!jefeDeptoField.getText().matches("[a-zA-ZáéíóúÁÉÍÓÚ\\s]+")) {
+            mostrarAlerta("Validación", "El campo 'Jefe de Departamento' solo debe contener letras.", AlertType.WARNING);
+            jefeDeptoField.requestFocus();
+            return false;
+        }
+
+        // Validar número de docentes
+        try {
+            int docentes = Integer.parseInt(totalDocentes.getEditor().getText());
+            if (docentes < 100) {
+                mostrarAlerta("Validación", "El número mínimo de docentes debe ser 100.", AlertType.WARNING);
+                totalDocentes.requestFocus();
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            mostrarAlerta("Validación", "Por favor ingrese un número válido de docentes.", AlertType.WARNING);
+            totalDocentes.requestFocus();
+            return false;
+        }
+
+        return true;
+    }
     // Los demás métodos (cerrarVentana, minimizarVentana, regresarVentana, limpiarCampos, mostrarAlerta) 
     // permanecen igual que en tu código original
 
-
     //Métodos de los botones de la barra superior :)
-    public void cerrarVentana(MouseEvent event) {
-        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmacion.setTitle("Confirmación");
-        confirmacion.setHeaderText(null);
-        confirmacion.setContentText("¿Quieres cerrar sesión?");
-
-        Optional<ButtonType> resultado = confirmacion.showAndWait();
-        if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
-            Stage stage = (Stage) ((Button) event.getSource()).getScene().getWindow();
-            stage.close();
-        }
-    }
-
     public void minimizarVentana(MouseEvent event) {
         ControladorGeneral.minimizarVentana(event);
     }
 
     public void regresarVentana(MouseEvent event) throws IOException {
         // Verificar si hay datos en los campos
-        boolean hayDatos = !directorField.getText().isEmpty() || !coordinadorField.getText().isEmpty()
-                || !jefeDeptoField.getText().isEmpty() || totalDocentesField.getValue() != null;
-
-        // Si hay datos, mostrar mensaje de confirmación para guardar
+        boolean hayDatos = !directorField.getText().trim().isEmpty()
+                || !coordinadorField.getText().trim().isEmpty()
+                || !jefeDeptoField.getText().trim().isEmpty()
+                || (totalDocentes.getValue() != null && totalDocentes.getValue() != 100)
+                || periodoEscolar.getValue() != null;
         if (hayDatos) {
             Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
             confirmacion.setTitle("Confirmación");
-            confirmacion.setHeaderText("¿Deseas guardar los datos?");
+            confirmacion.setHeaderText(null);
             confirmacion.setContentText("Tienes datos ingresados en los campos. ¿Deseas guardarlos antes de regresar?");
 
             ButtonType botonGuardar = new ButtonType("Guardar");
@@ -211,30 +333,27 @@ public class ModificacionDatosController implements Initializable {
 
             if (resultado.isPresent()) {
                 if (resultado.get() == botonGuardar) {
-                    guardarDatosEnExcel(event); // Llamar a método de guardar
-                    ControladorGeneral.regresar(event, "Principal", getClass()); // Regresar a la ventana principal
+                    guardarDatosEnExcel(event);
+                    ControladorGeneral.regresar(event, "Principal", getClass());
                 } else if (resultado.get() == botonNoGuardar) {
-                    ControladorGeneral.regresar(event, "Principal", getClass()); // Regresar sin guardar
+                    ControladorGeneral.regresar(event, "Principal", getClass());
                 }
-                // Si selecciona cancelar, no se realiza ninguna acción adicional
             }
         } else {
-            // Si no hay datos, regresar sin mostrar mensaje
             ControladorGeneral.regresar(event, "Principal", getClass());
         }
     }
 
-    public void limpiarCampos() {
+    // Nuevo método para restablecer campos a valores iniciales
+    public void restablecerCamposValoresIniciales() {
         directorField.clear();
         coordinadorField.clear();
         jefeDeptoField.clear();
-        totalDocentesField.getValueFactory().setValue(0); // Restablecer Spinner
-        año.getValueFactory().setValue(2024); // Restablecer Spinner de año al valor predeterminado
+        totalDocentes.getValueFactory().setValue(100); // Valor inicial del Spinner
+        año.getValueFactory().setValue(2024); // Valor inicial del año
         periodoEscolar.getSelectionModel().clearSelection(); // Limpiar selección del ComboBox
-
     }
 
-   
     // Método para mostrar alertas en la aplicación
     private void mostrarAlerta(String titulo, String mensaje, AlertType tipo) {
         Alert alerta = new Alert(tipo);
@@ -244,64 +363,4 @@ public class ModificacionDatosController implements Initializable {
         alerta.showAndWait();
     }
 
-    // Método para validar los campos de entrada
-    /*private boolean validarCampos() {
-        // Validar que los campos de nombres solo contengan letras
-        if (!directorField.getText().matches("[a-zA-Z\\s]+")) {
-            mostrarAlerta("Validación", "El campo 'Director' solo debe contener letras.", AlertType.WARNING);
-            return false;
-        }
-        if (!coordinadorField.getText().matches("[a-zA-Z\\s]+")) {
-            mostrarAlerta("Validación", "El campo 'Coordinador' solo debe contener letras.", AlertType.WARNING);
-            return false;
-        }
-        if (!jefeDeptoField.getText().matches("[a-zA-Z\\s]+")) {
-            mostrarAlerta("Validación", "El campo 'Jefe de Departamento' solo debe contener letras.", AlertType.WARNING);
-            return false;
-        }
-
-        // Validar que el campo de total de docentes solo contenga números
-        if (totalDocentesField.getValue() == null || totalDocentesField.getValue() < 0) {
-            mostrarAlerta("Validación", "El campo 'Total de Docentes' solo debe contener números positivos.", AlertType.WARNING);
-            return false;
-        }
-        if (periodoEscolar.getValue() == null) {
-            mostrarAlerta("Validación", "Por favor selecciona un período escolar.", AlertType.WARNING);
-            return false;
-        }
-
-        return true;
-    }*/
-
-   /* @Override
-    public void initialize(URL url, ResourceBundle rb) {
-        // Otros botones
-
-        // Configuración del Spinner para aceptar valores enteros
-        SpinnerValueFactory<Integer> valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(100, 800); // Rango de 0 a 100, ajusta según necesites
-        totalDocentesField.setValueFactory(valueFactory);
-        // Configuración del botón Guardar para que llame al método guardarDatosEnExcel
-        botonGuardar.setOnMouseClicked(event -> guardarDatosEnExcel(event));
-
-        botonCerrar.setOnMouseClicked(event -> {
-            cerrarVentana(event);
-        });
-
-        botonMinimizar.setOnMouseClicked(this::minimizarVentana);
-        botonRegresar.setOnMouseClicked(event -> {
-            try {
-                regresarVentana(event);
-            } catch (IOException ex) {
-                Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        });
-        botonLimpiar.setOnMouseClicked(event -> limpiarCampos());
-
-        // Configuración del Spinner para el año
-        SpinnerValueFactory<Integer> añoValueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(2000, 2100, 2024);
-        año.setValueFactory(añoValueFactory);
-
-        // Configuración del ComboBox para el período escolar
-        periodoEscolar.getItems().addAll("Enero-Julio", "Agosto-Diciembre");
-    }*/
 }

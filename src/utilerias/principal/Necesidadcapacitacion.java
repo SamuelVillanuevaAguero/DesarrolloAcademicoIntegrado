@@ -1,5 +1,6 @@
 package utilerias.principal;
 
+import static com.aspose.cells.PropertyType.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -7,26 +8,89 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.io.File;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import utilerias.general.ControladorGeneral;
 
 public class Necesidadcapacitacion {
 
+    private String obtenerUltimaSemana(String rutaDirectorio, String patron, String identificador) {
+        File directorio = new File(rutaDirectorio);
+        File[] archivos = directorio.listFiles();
+        int ultimaSemana = 0;
+        
+        if (archivos != null) {
+            Pattern pattern = Pattern.compile(patron);
+            for (File archivo : archivos) {
+                Matcher matcher = pattern.matcher(archivo.getName());
+                if (matcher.find()) {
+                    String numeroStr = archivo.getName().split(identificador + "_")[1].split("\\)")[0];
+                    int numero = Integer.parseInt(numeroStr);
+                    if (numero > ultimaSemana) {
+                        ultimaSemana = numero;
+                    }
+                }
+            }
+        }
+        return String.valueOf(ultimaSemana);
+    }
+
+    
     public void generarArchivo() throws IOException {
-        // Rutas de los archivos
-        String rutaCapacitacion = "C:\\Users\\sebas\\OneDrive\\Escritorio\\Arhicvos Prueba\\Gestion_de_curso\\Archivos_importados\\Año\\Periodo\\programa_de_capacitacion(1).xlsx";
-        String rutaNecesidades = "C:\\Users\\sebas\\OneDrive\\Escritorio\\Arhicvos Prueba\\Gestion_de_curso\\Archivos_importados\\Año\\Periodo\\listado_de_necesidad_de_acreditacion.xlsx";
-        String rutaSalida = "C:\\Users\\sebas\\OneDrive\\Escritorio\\Arhicvos Prueba\\Gestion_de_curso\\Archivos_importados\\Año\\Periodo\\docentesRecomendable.xlsx";
+        // Obtener año y periodo actual
+        Calendar calendario = Calendar.getInstance();
+        int año = calendario.get(Calendar.YEAR);
+        int periodo = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
+
+        // Construir rutas base para archivos de entrada
+        String rutaBaseEntrada = ControladorGeneral.obtenerRutaDeEjecusion() + 
+                         "\\Gestion_de_Cursos\\Archivos_importados\\" + 
+                         año + "\\" + periodo + "-" + año + "\\";
+
+        // Construir ruta base para archivo de salida
+        String rutaBaseSalida = ControladorGeneral.obtenerRutaDeEjecusion() + 
+                         "\\Gestion_de_Cursos\\Sistema\\informacion_notificaciones\\" +
+                         año + "\\" + periodo + "-" + año + "\\";
+
+        // Construir rutas específicas de entrada
+        String rutaCapacitacionDir = rutaBaseEntrada + "listado_de_pre_regitro_a_cursos_de_capacitacion\\";
+        String rutaNecesidadesDir = rutaBaseEntrada + "listado_de_deteccion_de_necesidades\\";
+
+        // Obtener última semana para cada archivo
+        String semanaCapacitacion = obtenerUltimaSemana(rutaCapacitacionDir, 
+            "listado\\_\\(Semana_\\d+\\)\\.xlsx", "Semana");
+        String semanaNecesidades = obtenerUltimaSemana(rutaNecesidadesDir, 
+            "listado\\_\\(Semana_\\d+\\)\\.xlsx", "Semana");
+
+        // Construir rutas completas de los archivos de entrada
+        String rutaCapacitacion = rutaCapacitacionDir + 
+            "listado_(Semana_" + semanaCapacitacion + ").xlsx";
+        String rutaNecesidades = rutaNecesidadesDir + 
+            "listado_(Semana_" + semanaNecesidades + ").xlsx";
+
+        // Crear estructura de directorios para la salida
+        File directorioSalida = new File(rutaBaseSalida);
+        if (!directorioSalida.exists()) {
+            if (!directorioSalida.mkdirs()) {
+                throw new IOException("No se pudieron crear los directorios necesarios para la salida");
+            }
+        }
+
+        // Construir ruta completa del archivo de salida
+        String rutaSalida = rutaBaseSalida + "docentes_recomendables_(Semana_" + 
+            semanaCapacitacion + ").xlsx";
 
         // Leer archivos
         List<String[]> listaCapacitacion = leerCapacitacion(rutaCapacitacion);
         Map<String, String[]> necesidades = leerNecesidades(rutaNecesidades);
 
-        // Crear nuevo archivo basado en la comparación
+        // Generar nuevo archivo
         generarArchivoNuevo(listaCapacitacion, necesidades, rutaSalida);
 
         System.out.println("Archivo generado correctamente en: " + rutaSalida);
     }
 
-    // Leer el archivo programa_de_capacitacion(1) y ordenar
     private static List<String[]> leerCapacitacion(String rutaArchivo) throws IOException {
         List<String[]> profesores = new ArrayList<>();
         FileInputStream fis = new FileInputStream(rutaArchivo);
@@ -56,7 +120,6 @@ public class Necesidadcapacitacion {
         return profesores;
     }
 
-    // Leer listado_de_necesidad_de_acreditacion
     private static Map<String, String[]> leerNecesidades(String rutaArchivo) throws IOException {
         Map<String, String[]> necesidades = new HashMap<>();
         FileInputStream fis = new FileInputStream(rutaArchivo);
@@ -132,8 +195,6 @@ public class Necesidadcapacitacion {
             workbookNuevo.write(fos);
         }
         workbookNuevo.close();
-
-        System.out.println("Archivo generado correctamente en: " + rutaSalida);
     }
 
     // Método auxiliar para leer una celda como texto

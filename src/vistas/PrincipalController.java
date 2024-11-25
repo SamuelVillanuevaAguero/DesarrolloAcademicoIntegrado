@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
@@ -166,11 +168,17 @@ public class PrincipalController implements Initializable {
             }
         });
 
-        // Ruta del archivo Excel
+        // Obtener año y periodo actual
         Calendar calendario = Calendar.getInstance();
         int año = calendario.get(Calendar.YEAR);
         int periodo = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
-        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\docentesRecomendable.xlsx";
+
+        // Construir ruta base para archivo de salida
+        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion()
+                + File.separator + "Gestion_de_Cursos" + File.separator
+                + "Sistema" + File.separator + "informacion_notificaciones"
+                + File.separator + año + File.separator + periodo + "-" + año
+                + File.separator;
 
         // Leer docentes que necesitan capacitación
         List<Docente> docentes = leerDocentesConNecesidadDeCapacitacion(rutaArchivo);
@@ -261,35 +269,121 @@ public class PrincipalController implements Initializable {
         return docentes;
     }
 
+    private String obtenerUltimaSemana(String rutaDirectorio, String patron, String identificador) {
+        File directorio = new File(rutaDirectorio);
+        System.out.println("Buscando archivos en: " + rutaDirectorio);
+
+        if (!directorio.exists()) {
+            System.out.println("ERROR: Directorio no existe: " + rutaDirectorio);
+            return "0";
+        }
+
+        File[] archivos = directorio.listFiles();
+        if (archivos == null || archivos.length == 0) {
+            System.out.println("ERROR: No se encontraron archivos en el directorio");
+            return "0";
+        }
+
+        System.out.println("Archivos encontrados: " + archivos.length);
+
+        int ultimaSemana = 0;
+        Pattern pattern = Pattern.compile(patron);
+
+        for (File archivo : archivos) {
+            System.out.println("Analizando archivo: " + archivo.getName());
+            Matcher matcher = pattern.matcher(archivo.getName());
+            if (matcher.find()) {
+                try {
+                    String numeroStr = archivo.getName().split(identificador + "_")[1].split("\\)")[0];
+                    int numero = Integer.parseInt(numeroStr);
+                    System.out.println("Número de semana encontrado: " + numero);
+                    if (numero > ultimaSemana) {
+                        ultimaSemana = numero;
+                    }
+                } catch (Exception e) {
+                    System.out.println("Error al procesar archivo " + archivo.getName() + ": " + e.getMessage());
+                }
+            }
+        }
+
+        System.out.println("Última semana encontrada: " + ultimaSemana);
+        return String.valueOf(ultimaSemana);
+    }
+
     // Método para leer los datos de docentes y generar las notificaciones en VBox
     public void generarNotificacionesEnVBox() {
+        // Obtener año y periodo actual
         Calendar calendario = Calendar.getInstance();
         int año = calendario.get(Calendar.YEAR);
         int periodo = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
-        
-        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_cursos\\Sistema\\informacion_notificaciones\\"+año+"\\"+periodo+"-"+año+"\\docentesRecomendable.xlsx";
-        List<Docente> docentesN = leerDocentesConNecesidadDeCapacitacion(rutaArchivo);
 
-        // Limpiar el VBox antes de agregar nuevas notificaciones (para evitar duplicados si se llama varias veces)
+        // Construir ruta base para archivo de salida
+        String rutaBaseSalida = ControladorGeneral.obtenerRutaDeEjecusion()
+                + File.separator + "Gestion_de_Cursos" + File.separator
+                + "Sistema" + File.separator + "informacion_notificaciones"
+                + File.separator + año + File.separator + periodo + "-" + año
+                + File.separator;
+
+        System.out.println("Ruta base de salida: " + rutaBaseSalida);
+
+        // Verificar si el directorio existe
+        File directorioBase = new File(rutaBaseSalida);
+        if (!directorioBase.exists()) {
+            System.out.println("ERROR: El directorio base no existe: " + rutaBaseSalida);
+            return;
+        }
+
+        // Obtener última semana
+        String semanaCapacitacion = obtenerUltimaSemana(rutaBaseSalida,
+                "docentes_recomendables_\\(Semana_\\d+\\)\\.xlsx", "Semana");
+
+        System.out.println("Última semana encontrada: " + semanaCapacitacion);
+
+        // Si no se encontró ninguna semana
+        if (semanaCapacitacion.equals("0")) {
+            System.out.println("ERROR: No se encontraron archivos de semanas");
+            return;
+        }
+
+        // Construir ruta completa del archivo de salida
+        String rutaSalida = rutaBaseSalida + "docentes_recomendables_(Semana_"
+                + semanaCapacitacion + ").xlsx";
+
+        System.out.println("Intentando leer archivo: " + rutaSalida);
+
+        // Verificar si el archivo existe
+        File archivoSalida = new File(rutaSalida);
+        if (!archivoSalida.exists()) {
+            System.out.println("ERROR: El archivo no existe: " + rutaSalida);
+            return;
+        }
+
+        List<Docente> docentesN = leerDocentesConNecesidadDeCapacitacion(rutaSalida);
+        System.out.println("Docentes leídos: " + docentesN.size());
+
+        // Limpiar el VBox antes de agregar nuevas notificaciones
         notificacioneBox.getChildren().clear();
 
+        int docentesMostrados = 0;
         // Crear una entrada de notificación para cada docente
         for (Docente docente : docentesN) {
-            // **Condición para ignorar docentes sin "Recomendable" en FP o AD**
+            // Solo procesar docentes con recomendaciones
             if (!docente.necesitaCapacitacionFD && !docente.necesitaCapacitacionAP) {
-                continue; // Saltar este docente
+                continue;
             }
 
-            // Crear un VBox para el docente, donde se mostrarán el nombre y las necesidades de capacitación
+            docentesMostrados++;
+
+            // Crear un VBox para el docente
             VBox docenteBox = new VBox();
-            docenteBox.setSpacing(3); // Espacio entre elementos en el VBox
-            docenteBox.setStyle("-fx-padding: 5; -fx-border-color: black; -fx-background-color: white; -fx-border-radius: 5; -fx-background-radius: 5;");
+            docenteBox.setSpacing(3);
+            docenteBox.setStyle("-fx-padding: 5; -fx-border-color: #cccccc; "
+                    + "-fx-background-color: white; -fx-border-radius: 5; "
+                    + "-fx-background-radius: 5; -fx-margin: 5;");
 
-            // Crear y añadir un Label para el nombre del docente
             Label nombreLabel = new Label("Nombre: " + docente.nombre);
-            nombreLabel.setStyle("-fx-font-weight: bold;"); // Darle énfasis al nombre
+            nombreLabel.setStyle("-fx-font-weight: bold;");
 
-            // Crear y añadir un Label para las necesidades de capacitación
             String necesidades = "Necesita capacitación en: ";
             if (docente.necesitaCapacitacionFD && docente.necesitaCapacitacionAP) {
                 necesidades += "FD y AP";
@@ -300,33 +394,19 @@ public class PrincipalController implements Initializable {
             }
 
             Label capacitacionLabel = new Label(necesidades);
-
-            // Añadir los Labels al VBox del docente
             docenteBox.getChildren().addAll(nombreLabel, capacitacionLabel);
-
-            // Añadir el VBox del docente al contenedor principal
             notificacioneBox.getChildren().add(docenteBox);
         }
 
-        // Ajustar altura del contenedor según el número de nodos
-        notificacioneBox.setPrefHeight(Control.USE_COMPUTED_SIZE);
-        notificacioneBox.requestLayout();
+        System.out.println("Docentes mostrados en notificaciones: " + docentesMostrados);
 
-        // Obtener el número total de nodos dentro del VBox `notificacioneBox`
-        int totalNodos = notificacioneBox.getChildren().size();
+        // Ajustar visibilidad del ícono de notificación
+        notiAlert.setVisible(docentesMostrados > 0);
 
-        // Condición para mostrar el `imageView` (icono de notificación)
-        if (totalNodos >= 1) {
-            notiAlert.setVisible(true);
-        } else {
-            notiAlert.setVisible(false);
-        }
-
-        // Ajustes del ScrollPane para desplazarse verticalmente
-        scrollBox.setContent(notificacioneBox); // Asegúrate de que `notificacioneBox` esté dentro del `ScrollPane`
-        scrollBox.setFitToWidth(true); // Ajustar el ancho del contenido al `ScrollPane`
-        scrollBox.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // No permitir desplazamiento horizontal
-        scrollBox.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED); // Mostrar barra de desplazamiento vertical según sea necesario
+        // Configurar ScrollPane
+        scrollBox.setContent(notificacioneBox);
+        scrollBox.setFitToWidth(true);
+        scrollBox.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollBox.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
     }
 
