@@ -349,15 +349,23 @@ public class BusquedaEstadisticaController implements Initializable {
             Cell celda = fila.createCell(3);
             celda.setCellValue(comboDepartamento.getValue().toUpperCase());
             celda.setCellStyle(estiloNegrillas(workbook));
-            
+
             //Año
             fila = sheet.getRow(5);
             if (fila == null) {
                 fila = sheet.createRow(5);
             }
             celda = fila.createCell(3);
-            celda.setCellValue("AÑO "+comboAño.getValue().toString().toUpperCase());
-            celda.setCellStyle(estiloNegrillas(workbook));       
+            celda.setCellValue("AÑO " + comboAño.getValue().toString().toUpperCase());
+            celda.setCellStyle(estiloNegrillas(workbook));
+
+            fila = sheet.getRow(7);
+            if (fila == null) {
+                fila = sheet.createRow(7);
+            }
+            celda = fila.createCell(3);
+            celda.setCellValue(periodo < 7 ? "ENERO - JULIO" : "AGOSTO - DICIEMBRE");
+            celda.setCellStyle(estiloPeriodo(workbook));
 
             // Llenar las filas del archivo Excel
             int y = 0;
@@ -377,9 +385,9 @@ public class BusquedaEstadisticaController implements Initializable {
                 if (filaDato.getAcreditado().equalsIgnoreCase("si")) {
                     // Escribir las celdas
 
-                    if (mapaDocente.containsKey(filaDato.getNombre())) {
+                    if (mapaDocente.containsKey(filaDato.getNombre() + " " + filaDato.getApellidoPaterno() + " " + filaDato.getApellidoMaterno())) {
                         System.out.println("YA EXISTE");
-                        int row = mapaDocente.get(filaDato.getNombre());
+                        int row = mapaDocente.get(filaDato.getNombre() + " " + filaDato.getApellidoPaterno() + " " + filaDato.getApellidoMaterno());
                         fila = sheet.getRow(row);
                         // Verificar el tipo de capacitación para asignar a la columna adecuada
                         if (filaDato.getTipoCapacitacion().equalsIgnoreCase("FD")) {
@@ -395,7 +403,7 @@ public class BusquedaEstadisticaController implements Initializable {
                         }
                     } else {
                         System.out.println("NO EXISTE");
-                        mapaDocente.put(filaDato.getNombre(), filaInicio + y);
+                        mapaDocente.put(filaDato.getNombre() + " " + filaDato.getApellidoPaterno() + " " + filaDato.getApellidoMaterno(), filaInicio + y);
                         y++;
                         celda = fila.createCell(1);
                         celda.setCellStyle(estilo);
@@ -403,7 +411,7 @@ public class BusquedaEstadisticaController implements Initializable {
 
                         celda = fila.createCell(2);
                         celda.setCellStyle(estilo);
-                        celda.setCellValue(filaDato.getNombre()); // Columna B: Nombre del docente
+                        celda.setCellValue(filaDato.getNombre() + " " + filaDato.getApellidoPaterno() + " " + filaDato.getApellidoMaterno()); // Columna B: Nombre del docente
 
                         // Verificar el tipo de capacitación para asignar a la columna adecuada
                         if (filaDato.getTipoCapacitacion().equalsIgnoreCase("FD")) {
@@ -502,6 +510,27 @@ public class BusquedaEstadisticaController implements Initializable {
         // Configurar alineación centrada
         style.setAlignment(CellStyle.ALIGN_CENTER); // Centrar horizontalmente
         style.setVerticalAlignment(CellStyle.VERTICAL_CENTER); // Centrar verticalmente
+
+        // Configurar bordes
+        return style;
+    }
+
+    private CellStyle estiloPeriodo(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+
+        // Crear fuente en negritas
+        Font font = workbook.createFont();
+        font.setBold(true); // Hacer la fuente en negrita
+        style.setFont(font);
+
+        // Configurar alineación centrada
+        style.setAlignment(CellStyle.ALIGN_CENTER); // Centrar horizontalmente
+        style.setVerticalAlignment(CellStyle.VERTICAL_CENTER); // Centrar verticalmente
+
+        style.setBorderTop(CellStyle.BORDER_THIN);
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBorderLeft(CellStyle.BORDER_THIN);
+        style.setBorderRight(CellStyle.BORDER_THIN);
 
         // Configurar bordes
         return style;
@@ -1180,7 +1209,7 @@ public class BusquedaEstadisticaController implements Initializable {
         porcentajeDocentesCapacitados.setText((int) porcentajeCapacitados + "%");
         // Inicializar opciones de ComboBoxes
         comboTipoCapacitacion.getItems().addAll("Actualización profesional", "Formación docente");
-        comboDepartamento.getItems().addAll("CIENCIAS BÁSICAS", "CIENCIAS ECONÓMICO ADMINISTRATIVAS", "CIENCIAS DE LA TIERRA", "INGENIERÍA INDUSTRIAL", "METAL MECÁNICA", "QUÍMICA Y BIOQUÍMICA", "SISTEMAS COMPUTACIONALES");
+        comboDepartamento.getItems().addAll("CIENCIAS BÁSICAS", "CIENCIAS ECONÓMICO ADMINISTRATIVAS", "CIENCIAS DE LA TIERRA", "INGENIERÍA INDUSTRIAL", "METAL MECÁNICA", "QUÍMICA Y BIOQUÍMICA", "SISTEMAS COMPUTACIONALES", "POSGRADO");
         comboAcreditacion.getItems().addAll("Si", "No", "Ambos");
         comboNivel.getItems().addAll("Licenciatura", "Posgrado");
 
@@ -1223,8 +1252,6 @@ public class BusquedaEstadisticaController implements Initializable {
             comboDepartamento.setValue(null);
             comboAcreditacion.setValue(null);
             comboNivel.setValue(null);
-            comboAño.setValue(null);
-            comboPeriodo.setValue(null);
             comboFormato.setValue(null);
             tabla.getItems().clear();
         });
@@ -1232,38 +1259,31 @@ public class BusquedaEstadisticaController implements Initializable {
         botonBuscar.setOnMouseClicked(event -> {
 
             System.out.println("Botón buscar...");
-
-            String tipoCapacitacion = comboTipoCapacitacion.getValue() == null ? null : comboTipoCapacitacion.getValue().equals("Formación docente") ? "FD" : "AP";
-
-            String departamento = comboDepartamento.getValue();
-            String acreditacion = comboAcreditacion.getValue();
-            String nivel = comboNivel.getValue();
-
-            int año = comboAño.getValue() != null ? comboAño.getValue() : 0;
-            int periodo = comboPeriodo.getValue() != null
-                    ? comboPeriodo.getValue().equals("Enero - Julio") ? 1 : 2 : 0;
-
-            if (año == 0 || periodo == 0) {
-                Alert alerta = new Alert(Alert.AlertType.WARNING);
-                alerta.setTitle("Periodo");
-                alerta.setHeaderText(null);
-                alerta.setContentText("Selecciona un año y periodo");
-                alerta.showAndWait();
-                return;
-            }
-
-            try {
-                // Llamar al método readAllExcelFiles pasando todos los filtros
-                data = readAllExcelFiles(año, periodo, tipoCapacitacion, departamento, acreditacion, nivel);
-            } catch (InvalidFormatException ex) {
-                Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            tabla.setItems(data);
-            docentesTomandoCursos.setText("" + contarFilasUnicas(data));
+            metodoBuscar();
 
         });
 
         botonExportar.setOnMouseClicked(event -> {
+
+            if (comboFormato.getValue() == null) {
+                Alert alerta = new Alert(Alert.AlertType.WARNING);
+                alerta.setTitle("Formato");
+                alerta.setHeaderText(null);
+                alerta.setContentText("Selecciona un formato de exportación");
+                alerta.showAndWait();
+                return;
+            }
+            if (comboDepartamento.getValue() == null) {
+                Alert alerta = new Alert(Alert.AlertType.WARNING);
+                alerta.setTitle("Departamento");
+                alerta.setHeaderText(null);
+                alerta.setContentText("Selecciona departamento para exportar");
+                alerta.showAndWait();
+                return;
+            }
+
+            metodoBuscar();
+
             int año = comboAño.getValue();
             int periodo = comboPeriodo.getValue().equalsIgnoreCase("Enero - Julio") ? 1 : 2;
             String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\" + año + "\\" + periodo + "-" + año + "\\formato_de_reporte_para_docentes_capacitados\\";
@@ -1291,6 +1311,36 @@ public class BusquedaEstadisticaController implements Initializable {
             }
         });
 
+    }
+
+    public void metodoBuscar() {
+        String tipoCapacitacion = comboTipoCapacitacion.getValue() == null ? null : comboTipoCapacitacion.getValue().equals("Formación docente") ? "FD" : "AP";
+
+        String departamento = comboDepartamento.getValue();
+        String acreditacion = comboAcreditacion.getValue();
+        String nivel = comboNivel.getValue();
+
+        int año = comboAño.getValue() != null ? comboAño.getValue() : 0;
+        int periodo = comboPeriodo.getValue() != null
+                ? comboPeriodo.getValue().equals("Enero - Julio") ? 1 : 2 : 0;
+
+        if (año == 0 || periodo == 0) {
+            Alert alerta = new Alert(Alert.AlertType.WARNING);
+            alerta.setTitle("Periodo");
+            alerta.setHeaderText(null);
+            alerta.setContentText("Selecciona un año y periodo");
+            alerta.showAndWait();
+            return;
+        }
+
+        try {
+            // Llamar al método readAllExcelFiles pasando todos los filtros
+            data = readAllExcelFiles(año, periodo, tipoCapacitacion, departamento, acreditacion, nivel);
+        } catch (InvalidFormatException ex) {
+            Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        tabla.setItems(data);
+        docentesTomandoCursos.setText("" + contarFilasUnicas(data));
     }
 
     public int obtenerUltimaSemana(String carpetaDestino, String nombreArchivo, String versionS, String extension) {
