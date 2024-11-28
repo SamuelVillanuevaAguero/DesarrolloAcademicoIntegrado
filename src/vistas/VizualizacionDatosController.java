@@ -39,6 +39,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -298,12 +302,52 @@ public class VizualizacionDatosController implements Initializable {
         return texto.replaceFirst("^\\d+\\.s*", "").trim();
     }
 
-    @FXML
-    private void Exportar(ActionEvent event) {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Buscar Curso");
-        dialog.setHeaderText("Ingrese el nombre del curso a exportar:");
-        dialog.setContentText("Nombre del curso:");
+   @FXML
+private void Exportar(ActionEvent event) {
+    // Preguntar si desea exportar un solo curso o todos los cursos
+    Alert opcionExportacion = new Alert(AlertType.CONFIRMATION);
+    opcionExportacion.setTitle("Opciones de Exportación");
+    opcionExportacion.setHeaderText("Seleccione el tipo de exportación");
+    opcionExportacion.setContentText("¿Desea exportar la lista de asistencia de un curso específico o de todos los cursos?");
+
+    ButtonType botonUnCurso = new ButtonType("Un Curso");
+    ButtonType botonTodosLosCursos = new ButtonType("Todos los Cursos");
+    ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+    opcionExportacion.getButtonTypes().setAll(botonUnCurso, botonTodosLosCursos, botonCancelar);
+    Optional<ButtonType> opcionSeleccionada = opcionExportacion.showAndWait();
+
+    if (opcionSeleccionada.isEmpty() || opcionSeleccionada.get() == botonCancelar) {
+        return;
+    }
+
+    if (opcionSeleccionada.get() == botonUnCurso) {
+        // Mostrar CheckList para seleccionar un curso
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Seleccionar Curso");
+        dialog.setHeaderText("Seleccione un curso de la lista");
+
+ListView<String> listView = new ListView<>();
+
+// Eliminar duplicados utilizando distinct() en el stream
+listView.getItems().addAll(
+    eventoList.stream()
+              .map(Evento::getNombreEvento)
+              .distinct() // Esto elimina los duplicados
+              .collect(Collectors.toList())
+);
+
+dialog.getDialogPane().setContent(listView);
+ButtonType botonSeleccionar = new ButtonType("Seleccionar", ButtonBar.ButtonData.OK_DONE);
+dialog.getDialogPane().getButtonTypes().addAll(botonSeleccionar, ButtonType.CANCEL);
+
+dialog.setResultConverter(dialogButton -> {
+    if (dialogButton == botonSeleccionar) {
+        return listView.getSelectionModel().getSelectedItem();
+    }
+    return null;
+});
+
 
         Optional<String> resultado = dialog.showAndWait();
         if (!resultado.isPresent()) {
@@ -320,8 +364,8 @@ public class VizualizacionDatosController implements Initializable {
         // Buscar eventos que coincidan con el curso (ignorando números iniciales)
         List<Evento> eventosFiltrados = eventoList.stream()
                 .filter(e -> limpiarTextoInicial(e.getNombreEvento())
-                .toLowerCase()
-                .contains(cursoIngresado.toLowerCase()))
+                        .toLowerCase()
+                        .contains(cursoIngresado.toLowerCase()))
                 .collect(Collectors.toList());
 
         if (eventosFiltrados.isEmpty()) {
@@ -329,88 +373,106 @@ public class VizualizacionDatosController implements Initializable {
             return;
         }
 
-        try {
-            // Configuración de rutas
-            //String desktopPath = System.getProperty("user.home") + File.separator + "Desktop";
-            String gestionCursosPath = ControladorGeneral.obtenerRutaDeEjecusion() + File.separator + "Gestion_de_Cursos";
+        // Exportar el curso seleccionado
+        exportarCurso(eventosFiltrados, cursoIngresado);
+    } else if (opcionSeleccionada.get() == botonTodosLosCursos) {
+        for (Evento evento : eventoList) {
+            String cursoIngresado = limpiarTextoInicial(evento.getNombreEvento().trim());
+            List<Evento> eventosFiltrados = eventoList.stream()
+                    .filter(e -> limpiarTextoInicial(e.getNombreEvento())
+                            .toLowerCase()
+                            .contains(cursoIngresado.toLowerCase()))
+                    .collect(Collectors.toList());
 
-            LocalDate fechaActual = LocalDate.now();
-            int mesActual = fechaActual.getMonthValue();
-            int añoActual = fechaActual.getYear();
-            String periodo = mesActual >= 1 && mesActual <= 7 ? "1" : "2";
-
-            String carpetaPeriodo = periodo + "-" + añoActual;
-            String rutaCarpetaFormatos = gestionCursosPath + File.separator + "Archivos_importados"
-                    + File.separator + añoActual + File.separator + carpetaPeriodo
-                    + File.separator + "formato_de_lista_de_asistencias";
-
-            // Buscar última versión del formato
-            File carpetaFormatos = new File(rutaCarpetaFormatos);
-            if (!carpetaFormatos.exists() || !carpetaFormatos.isDirectory()) {
-                mostrarAlerta("Error", "No se encontró la carpeta de formatos en: " + rutaCarpetaFormatos, AlertType.ERROR);
-                return;
+            if (!eventosFiltrados.isEmpty()) {
+                exportarCurso(eventosFiltrados, cursoIngresado);
             }
-
-            File[] archivosFormato = carpetaFormatos.listFiles((dir, name)
-                    -> name.toLowerCase().matches("formato_\\(version_\\d+\\)\\.xlsx")
-            );
-
-            if (archivosFormato == null || archivosFormato.length == 0) {
-                mostrarAlerta("Error", "No se encontraron formatos en: " + rutaCarpetaFormatos, AlertType.ERROR);
-                return;
-            }
-
-            File ultimaVersion = Arrays.stream(archivosFormato)
-                    .max((f1, f2) -> {
-                        int v1 = extraerNumeroVersion(f1.getName());
-                        int v2 = extraerNumeroVersion(f2.getName());
-                        return Integer.compare(v1, v2);
-                    })
-                    .orElseThrow(() -> new IOException("No se pudo determinar la última versión del formato"));
-
-            // Cargar plantilla y obtener la hoja
-            Workbook workbook = null;
-            try {
-                workbook = WorkbookFactory.create(new FileInputStream(ultimaVersion));
-            } catch (InvalidFormatException | EncryptedDocumentException ex) {
-                Logger.getLogger(VizualizacionDatosController.class.getName()).log(Level.SEVERE, null, ex);
-                mostrarAlerta("Error", "Error al abrir el formato: " + ex.getMessage(), AlertType.ERROR);
-                return;
-            }
-            Sheet sheet = workbook.getSheetAt(0);
-
-            // Obtener el primer evento y trabajar con los nombres limpios
-            Evento primerEvento = eventosFiltrados.get(0);
-
-            // Llenar el formato usando los nombres limpios
-            llenarFormato(sheet, cursoIngresado, primerEvento);
-
-            // Crear estilo para las celdas de la tabla
-            CellStyle style = crearEstiloCelda(workbook);
-
-            // Llenar la tabla de participantes
-            llenarTablaParticipantes(sheet, eventosFiltrados, style);
-
-            // Crear directorios para exportación
-            String rutaExportacion = gestionCursosPath + File.separator + "Archivos_exportados"
-                    + File.separator + añoActual + File.separator + carpetaPeriodo
-                    + File.separator + "listas_asistencia";
-            new File(rutaExportacion).mkdirs();
-
-            // Guardar el archivo
-            String nombreArchivo = "lista_asistencia_" + cursoIngresado.replace(" ", "_") + ".xlsx";
-            String rutaCompleta = rutaExportacion + File.separator + nombreArchivo;
-
-            try (FileOutputStream fileOut = new FileOutputStream(rutaCompleta)) {
-                workbook.write(fileOut);
-                mostrarAlerta("Éxito", "Archivo exportado correctamente en: " + rutaCompleta, AlertType.INFORMATION);
-            }
-
-        } catch (IOException e) {
-            mostrarAlerta("Error", "Error al exportar el archivo: " + e.getMessage(), AlertType.ERROR);
-            e.printStackTrace();
         }
     }
+}
+
+private void exportarCurso(List<Evento> eventosFiltrados, String cursoIngresado) {
+    try {
+        // Configuración de rutas
+        String gestionCursosPath = ControladorGeneral.obtenerRutaDeEjecusion() + File.separator + "Gestion_de_Cursos";
+
+        LocalDate fechaActual = LocalDate.now();
+        int mesActual = fechaActual.getMonthValue();
+        int añoActual = fechaActual.getYear();
+        String periodo = mesActual >= 1 && mesActual <= 7 ? "1" : "2";
+
+        String carpetaPeriodo = periodo + "-" + añoActual;
+        String rutaCarpetaFormatos = gestionCursosPath + File.separator + "Archivos_importados"
+                + File.separator + añoActual + File.separator + carpetaPeriodo
+                + File.separator + "formato_de_lista_de_asistencias";
+
+        // Buscar última versión del formato
+        File carpetaFormatos = new File(rutaCarpetaFormatos);
+        if (!carpetaFormatos.exists() || !carpetaFormatos.isDirectory()) {
+            mostrarAlerta("Error", "No se encontró la carpeta de formatos en: " + rutaCarpetaFormatos, AlertType.ERROR);
+            return;
+        }
+
+        File[] archivosFormato = carpetaFormatos.listFiles((dir, name)
+                -> name.toLowerCase().matches("formato_\\(version_\\d+\\)\\.xlsx")
+        );
+
+        if (archivosFormato == null || archivosFormato.length == 0) {
+            mostrarAlerta("Error", "No se encontraron formatos en: " + rutaCarpetaFormatos, AlertType.ERROR);
+            return;
+        }
+
+        File ultimaVersion = Arrays.stream(archivosFormato)
+                .max((f1, f2) -> {
+                    int v1 = extraerNumeroVersion(f1.getName());
+                    int v2 = extraerNumeroVersion(f2.getName());
+                    return Integer.compare(v1, v2);
+                })
+                .orElseThrow(() -> new IOException("No se pudo determinar la última versión del formato"));
+
+        // Cargar plantilla y obtener la hoja
+        Workbook workbook = null;
+        try {
+            workbook = WorkbookFactory.create(new FileInputStream(ultimaVersion));
+        } catch (InvalidFormatException | EncryptedDocumentException ex) {
+            Logger.getLogger(VizualizacionDatosController.class.getName()).log(Level.SEVERE, null, ex);
+            mostrarAlerta("Error", "Error al abrir el formato: " + ex.getMessage(), AlertType.ERROR);
+            return;
+        }
+        Sheet sheet = workbook.getSheetAt(0);
+
+        // Obtener el primer evento y trabajar con los nombres limpios
+        Evento primerEvento = eventosFiltrados.get(0);
+
+        // Llenar el formato usando los nombres limpios
+        llenarFormato(sheet, cursoIngresado, primerEvento);
+
+        // Crear estilo para las celdas de la tabla
+        CellStyle style = crearEstiloCelda(workbook);
+
+        // Llenar la tabla de participantes
+        llenarTablaParticipantes(sheet, eventosFiltrados, style);
+
+        // Crear directorios para exportación
+        String rutaExportacion = gestionCursosPath + File.separator + "Archivos_exportados"
+                + File.separator + añoActual + File.separator + carpetaPeriodo
+                + File.separator + "listas_asistencia";
+        new File(rutaExportacion).mkdirs();
+
+        // Guardar el archivo
+        String nombreArchivo = "lista_asistencia_" + cursoIngresado.replace(" ", "_") + ".xlsx";
+        String rutaCompleta = rutaExportacion + File.separator + nombreArchivo;
+
+        try (FileOutputStream fileOut = new FileOutputStream(rutaCompleta)) {
+            workbook.write(fileOut);
+            mostrarAlerta("Éxito", "Archivo exportado correctamente en: " + rutaCompleta, AlertType.INFORMATION);
+        }
+
+    } catch (IOException e) {
+        mostrarAlerta("Error", "Error al exportar el archivo: " + e.getMessage(), AlertType.ERROR);
+        e.printStackTrace();
+    }
+}
 
     // Método para crear el estilo de celda
     private CellStyle crearEstiloCelda(Workbook workbook) {
@@ -433,7 +495,7 @@ public class VizualizacionDatosController implements Initializable {
             setCellValue(sheet, "D8", cursoBuscado);                    // NOMBRE DEL EVENTO
             setCellValue(sheet, "D9", limpiarTextoInicial(primerEvento.getNombreFacilitador())); // NOMBRE DEL FACILITADOR
             setCellValue(sheet, "D10", primerEvento.getPeriodo());          // PERIODO
-            setCellValue(sheet, "D11", "17DIT0009T");                       // SEDE
+            setCellValue(sheet, "D11", "Instituto Tecnologico De Zacatepec");                       // SEDE
 
             // Establecer horario y duración obtenidos del programa institucional
             setCellValue(sheet, "Q9", infoCurso.horario);              // HORARIO
