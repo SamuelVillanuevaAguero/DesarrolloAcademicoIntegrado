@@ -78,6 +78,14 @@ public class ExportacionReconocimientosController implements Initializable {
     private TextArea txtAreaNombreCurso;
     @FXML
     private Label buttonRedireccionar;
+    @FXML
+    private RadioButton radiobotonCodigo;
+    @FXML
+    private RadioButton radiobotonNombre;
+    @FXML
+    private ComboBox<String> checkCodigos;
+    @FXML
+    private ComboBox<String> checkNombres;
 
     // Métodos de los botones de la barra superior
     public void cerrarVentana(MouseEvent event) throws IOException {
@@ -94,6 +102,7 @@ public class ExportacionReconocimientosController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
+       
         // Configuración inicial de eventos de los botones de la barra superior
         buttonRedireccionar.setOnMouseClicked(event -> {
             try {
@@ -102,7 +111,7 @@ public class ExportacionReconocimientosController implements Initializable {
                 Logger.getLogger(BusquedaEstadisticaController.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
-        
+
         botonCerrar.setOnMouseClicked(event -> {
             try {
                 cerrarVentana(event);
@@ -120,7 +129,7 @@ public class ExportacionReconocimientosController implements Initializable {
                 Logger.getLogger(ExportacionReconocimientosController.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
-
+                
         // Configurar opciones en ComboBox de horas y formatos
         for (int i = 20; i <= 50; i++) {
             txtHoras.getItems().add(String.valueOf(i));
@@ -134,49 +143,157 @@ public class ExportacionReconocimientosController implements Initializable {
         txtNombreInstructor.setDisable(true);
         txtAreaCompetencias.setDisable(true);
         txtFormatos.setDisable(true);
+        txtcodigodelcurso.setDisable(true);
+
+        checkCodigos.setDisable(true);
+        checkNombres.setDisable(true);
+
+        // oculta los txt
+        txtcodigodelcurso.setVisible(false); // Oculta el TextField
+        txtAreaNombreCurso.setVisible(false);
+
+        // Evento para checknombre
+        checkNombres.setOnAction(event -> {
+            String seleccion = checkNombres.getValue();
+            if (seleccion != null) {
+                txtAreaNombreCurso.setText(seleccion); // Coloca la selección en el TextField
+            } else {
+                txtAreaNombreCurso.clear(); // Limpia el TextField si no hay selección
+            }
+        });
+
+        checkCodigos.setOnAction(event -> {
+            String seleccion = checkCodigos.getValue(); // Obtiene el valor seleccionado
+            if (seleccion != null) {
+                txtcodigodelcurso.setText(seleccion); // Coloca la selección en el TextField
+            } else {
+                txtcodigodelcurso.clear(); // Limpia el TextField si no hay selección
+            }
+        });        
+       
+        // Asociar los eventos de los RadioButtons
+        radiobotonCodigo.setOnAction(event -> {
+            try {
+                manejarRadioButton();
+            } catch (IOException ex) {
+                Logger.getLogger(ExportacionReconocimientosController.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });
+        radiobotonNombre.setOnAction(event -> {
+            try {
+                manejarRadioButton();
+            } catch (IOException ex) {
+                Logger.getLogger(ExportacionReconocimientosController.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });
+
+        // Evento para checkCodigos (cuando se selecciona un ítem)
+        checkCodigos.setOnAction(event -> {
+            if (checkCodigos.getValue() != null) {
+                 // Asignar el valor seleccionado al campo de texto
+        txtcodigodelcurso.setText(checkCodigos.getValue());
+                // Acción cuando se ha seleccionado un valor en el ComboBox
+                checkCodigos.setVisible(false);
+                txtcodigodelcurso.setVisible(true);
+            }
+        });
+
+        // Evento para checkNombres (cuando se selecciona un ítem)
+        checkNombres.setOnAction(event -> {
+            if (checkNombres.getValue() != null) {
+                // Asignar el valor seleccionado al campo de texto
+        txtAreaNombreCurso.setText(checkNombres.getValue());
+        // Acción cuando se ha seleccionado un valor en el ComboBox
+                checkNombres.setVisible(false);  // Ocultar el CheckBox de nombres cuando algo es seleccionado
+                txtAreaNombreCurso.setVisible(true);
+            }
+        });
+
+    }
+
+    private void manejarRadioButton() throws IOException {
+        // Verificar si se seleccionó el radiobotonCodigo
+        if (radiobotonCodigo.isSelected()) {
+            // Desmarcar el otro RadioButton (radiobotonNombre)
+            radiobotonNombre.setSelected(false);
+            checkCodigos.setDisable(false);
+            checkNombres.setDisable(true);
+            
+            // ocultar combo y habilitar textfield Nombre
+            checkNombres.setVisible(false);
+            txtAreaNombreCurso.setVisible(true);
+            // Cargar códigos en el ComboBox
+            cargarDatosComboBox(txtcodigodelcurso.getText());
+        } // Verificar si se seleccionó el radiobotonNombre
+        else if (radiobotonNombre.isSelected()) {
+            // Desmarcar el otro RadioButton (radiobotonCodigo)
+            radiobotonCodigo.setSelected(false);
+            checkNombres.setDisable(false);
+            checkCodigos.setDisable(true);
+            
+             // ocultar combo y habilitar textfield codigo
+            checkCodigos.setVisible(false);
+            txtcodigodelcurso.setVisible(true);
+            // Cargar códigos en el ComboBox
+            cargarDatosComboBox(txtAreaNombreCurso.getText());
+        } else {
+            checkCodigos.setDisable(true);
+            checkNombres.setDisable(true);
+        }
     }
 
     @FXML
     private void buscarCurso(ActionEvent event) {
-        txtFormatos.setDisable(false); // Habilitar campo formatos
-        txtcodigodelcurso.setDisable(true);
-        String codigoCurso = txtcodigodelcurso.getText().trim();
-        ExcelReader excelReader = new ExcelReader(); // Manejo del archivo Excel
+         txtFormatos.setDisable(false); // Habilitar campo formatos
+    txtcodigodelcurso.setDisable(true); // Deshabilitar el campo de código para evitar cambios manuales
+    ExcelReader excelReader = new ExcelReader(); // Instancia de ExcelReader para manejar el archivo
 
-        try {
-            // Buscar el nombre del curso en el archivo de etiquetas
-            String nombreCurso = excelReader.buscarCurso(codigoCurso);
+    try {
+        String nombreCurso = null;
+        String codigoCurso = null;
 
-            if (nombreCurso != null && !nombreCurso.isEmpty()) {
-                // Si se encontró el nombre del curso, mostrarlo en el campo correspondiente
-                txtAreaNombreCurso.setText(nombreCurso);
-
-                // Buscar los detalles en el archivo de Prog-Institucional
-                Map<String, String> datosCurso = excelReader.buscarDetallesCurso(nombreCurso);
-                if (datosCurso != null) {
-                    // Rellenar los campos con los datos encontrados
-                    txtFechaCurso.setText(datosCurso.get("fechaCurso"));
-                    txtHoras.setValue(datosCurso.get("horasCurso"));
-                    txtNombreInstructor.setText(datosCurso.get("nombreInstructor"));
-                    txtAreaCompetencias.setText(datosCurso.get("competencias"));
-                } else {
-                    // Si no se encuentran los detalles, mostrar un mensaje informativo
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION, "No se encontraron detalles adicionales para el curso.");
-                    alert.showAndWait();
-                }
-            } else {
-                // Si no se encuentra el nombre del curso, mostrar un mensaje informativo
-                Alert alert = new Alert(Alert.AlertType.INFORMATION, "No se encontró ningún curso con ese código.");
-                alert.showAndWait();
-                txtcodigodelcurso.setText("");;
-                txtcodigodelcurso.setDisable(false);
-            }
-        } catch (IOException e) {
-            // Mostrar un mensaje de error en caso de problemas con el archivo Excel
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Error al leer el archivo de Excel: " + e.getMessage());
-            alert.showAndWait();
-            e.printStackTrace();
+        // Verificar si se seleccionó algo en checkCodigos (buscar por código)
+        if (checkCodigos.getValue() != null && !checkCodigos.getValue().isEmpty()) {
+            codigoCurso = checkCodigos.getValue();
+            nombreCurso = excelReader.buscarCurso(codigoCurso); // Buscar nombre por código
         }
+        // Verificar si se seleccionó algo en checkNombres (buscar por nombre)
+        else if (checkNombres.getValue() != null && !checkNombres.getValue().isEmpty()) {
+            nombreCurso = checkNombres.getValue(); // Obtener el nombre del curso seleccionado
+            // Buscar el código correspondiente al nombre
+            codigoCurso = excelReader.obtenerCodigoPorNombre(nombreCurso); // Obtener el código del curso por nombre
+        }
+
+        if (nombreCurso != null && !nombreCurso.isEmpty()) {
+            // Si se encontró el curso, llenar los campos correspondientes
+            txtAreaNombreCurso.setText(nombreCurso);
+            txtcodigodelcurso.setText(codigoCurso); // Llenar el campo con el código
+
+            // Buscar los detalles del curso (fecha, horas, instructor, competencias)
+            Map<String, String> datosCurso = excelReader.buscarDetallesCurso(nombreCurso);
+            if (datosCurso != null) {
+                // Llenar los campos con los datos encontrados
+                txtFechaCurso.setText(datosCurso.get("fechaCurso"));
+                txtHoras.setValue(datosCurso.get("horasCurso"));
+                txtNombreInstructor.setText(datosCurso.get("nombreInstructor"));
+                txtAreaCompetencias.setText(datosCurso.get("competencias"));
+            } else {
+                // Si no se encuentran los detalles, mostrar un mensaje informativo
+                Alert alert = new Alert(Alert.AlertType.INFORMATION, "No se encontraron detalles adicionales para el curso.");
+                alert.showAndWait();
+            }
+        } else {
+            // Si no se encuentra el curso, mostrar un mensaje informativo
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "No se encontró ningún curso con ese código o nombre.");
+            alert.showAndWait();
+            txtcodigodelcurso.setDisable(false);
+        }
+    } catch (IOException e) {
+        // Manejo de excepciones en caso de error con el archivo
+        Alert alert = new Alert(Alert.AlertType.ERROR, "Error al leer el archivo de Excel: " + e.getMessage());
+        alert.showAndWait();
+        e.printStackTrace();
+    }
     }
 
     @FXML
@@ -191,7 +308,7 @@ public class ExportacionReconocimientosController implements Initializable {
         txtAreaNombreCurso.setDisable(true);
         txtcodigodelcurso.setDisable(true);
     }
-    
+
     public int obtenerUltimaSemana(String carpetaDestino, String nombreArchivo, String versionS, String extension) {
         File carpeta = new File(carpetaDestino);
 
@@ -216,7 +333,7 @@ public class ExportacionReconocimientosController implements Initializable {
 
         // Determinar la versión más alta
         int maxVersion = 0;
-        Pattern pattern = Pattern.compile(".*\\("+versionS+"_(\\d+)\\)\\."+extension+"$"); // Patrón para extraer el número de versión
+        Pattern pattern = Pattern.compile(".*\\(" + versionS + "_(\\d+)\\)\\." + extension + "$"); // Patrón para extraer el número de versión
 
         for (File archivo : archivos) {
             String nombre = archivo.getName();
@@ -234,7 +351,7 @@ public class ExportacionReconocimientosController implements Initializable {
 
         return maxVersion; // Retornar la siguiente versión disponible
     }
-    
+
     @FXML
     private void exportarReconocimientos(ActionEvent event) throws IOException {
         ExcelReader excelReader = new ExcelReader();
@@ -319,7 +436,7 @@ public class ExportacionReconocimientosController implements Initializable {
                 + "Reconocimientos generados exitosamente: " + totalExportados);
         exito.showAndWait();
     }
-    
+
 
     @FXML
     private void guardarDatos(ActionEvent event) {
@@ -388,9 +505,33 @@ public class ExportacionReconocimientosController implements Initializable {
         txtFormatos.setDisable(true);
         txtNombreInstructor.setDisable(true);
         txtAreaCompetencias.setDisable(true);
+        txtcodigodelcurso.setDisable(true);
+        txtAreaNombreCurso.setDisable(true);
 
-        // habilitar codigo del curso
-        txtcodigodelcurso.setDisable(false);
+        // limpiar
+        checkCodigos.getSelectionModel().clearSelection();
+        checkNombres.getSelectionModel().clearSelection();
+        
+        // activar combo
+        checkCodigos.setVisible(true);
+        checkNombres.setVisible(true);
+        
+        // ocultar textfields
+        txtcodigodelcurso.setVisible(false);
+        txtAreaNombreCurso.setVisible(false);
+        
+        // Limpiar radioButtones
+        radiobotonCodigo.setSelected(false);
+        radiobotonNombre.setSelected(false);
+
+    }
+
+    @FXML
+    private void seleccionCodigo(ActionEvent event) {
+    }
+
+    @FXML
+    private void seleccionNombre(ActionEvent event) {
     }
     
     private String obtenerDirector(String ruta, int año, int periodo) {
@@ -495,7 +636,8 @@ public class ExportacionReconocimientosController implements Initializable {
             }
         }
     }
-
+    
+    
     // Procesa todos los párrafos en un documento
     private void procesarParrafos(XWPFDocument documento, String nombreDocente, String horasCurso) {
         // Obtén los valores adicionales de los TextFields y TextAreas
@@ -582,28 +724,102 @@ public class ExportacionReconocimientosController implements Initializable {
         run.setItalic(italica);
     }
     
-   
+    private void cargarDatosComboBox(String curso) throws IOException {
+        ExcelReader excelReader = new ExcelReader();
+        if (radiobotonCodigo.isSelected()) {
+            // Cargar códigos de cursos en el ComboBox
+            List<String> codigosCursos = excelReader.obtenerCodigosDeCursos(); // Método que necesitas implementar
+            checkCodigos.getItems().clear();
+            checkCodigos.getItems().addAll(codigosCursos);
+        } else if (radiobotonNombre.isSelected()) {
+            // Cargar nombres de cursos en el ComboBox
+            List<String> nombresCursos = excelReader.obtenerNombresDeCursos(); // Método que necesitas implementar
+            checkNombres.getItems().clear();
+            checkNombres.getItems().addAll(nombresCursos);
+        }
+    }
+
     class ExcelReader {
-        
+
         Calendar calendario = Calendar.getInstance();
         int año = calendario.get(Calendar.YEAR);
-        int periodo = calendario.get(Calendar.MONTH) < 7 ? 1 : 2 ;
-        
-        private String ETIQUETAS_PATH = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\listado_de_etiquetas_de_cursos\\";
-        int versionEtiquetas = obtenerUltimaSemana(ETIQUETAS_PATH , "listado\\_\\(Semana_\\d+\\)\\.xlsx", "Semana", "xlsx");
-        
-        private String PROG_INSTITUCIONAL_PATH = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\programa_institucional\\";
+        int periodo = calendario.get(Calendar.MONTH) < 7 ? 1 : 2;
+
+        private String ETIQUETAS_PATH = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\" + año + "\\" + periodo + "-" + año + "\\listado_de_etiquetas_de_cursos\\";
+        int versionEtiquetas = obtenerUltimaSemana(ETIQUETAS_PATH, "listado\\_\\(Semana_\\d+\\)\\.xlsx", "Semana", "xlsx");
+
+        private String PROG_INSTITUCIONAL_PATH = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\" + año + "\\" + periodo + "-" + año + "\\programa_institucional\\";
         int versionProg = obtenerUltimaSemana(PROG_INSTITUCIONAL_PATH, "programa_institucional\\_\\(Semana_\\d+\\)\\.xlsx", "Semana", "xlsx");
-        
-        private String NUEVO_EXCEL_PATH = ControladorGeneral.obtenerRutaDeEjecusion()  + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos\\"+año+"\\"+periodo+"-"+año+"\\";
+
+        private String NUEVO_EXCEL_PATH = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos\\" + año + "\\" + periodo + "-" + año + "\\";
         int versioCondensado = obtenerUltimaSemana(NUEVO_EXCEL_PATH, "condensado\\_\\(version_\\d+\\)\\.xlsx", "version", "xlsx");
+
         public ExcelReader() {
-            ETIQUETAS_PATH += "listado_(Semana_"+versionEtiquetas+").xlsx";
-            PROG_INSTITUCIONAL_PATH += "programa_institucional_(Semana_"+versionProg+").xlsx";
-            NUEVO_EXCEL_PATH += "condensado_(version_"+versioCondensado+").xlsx";
+            ETIQUETAS_PATH += "listado_(Semana_" + versionEtiquetas + ").xlsx";
+            PROG_INSTITUCIONAL_PATH += "programa_institucional_(Semana_" + versionProg + ").xlsx";
+            NUEVO_EXCEL_PATH += "condensado_(version_" + versioCondensado + ").xlsx";
+        }
+
+        public List<String> obtenerCodigosDeCursos() throws IOException {
+            List<String> codigos = new ArrayList<>();
+            try (FileInputStream fis = new FileInputStream(ETIQUETAS_PATH); Workbook workbook = new XSSFWorkbook(fis)) {
+                Sheet sheet = workbook.getSheetAt(0); // Asume que está en la primera hoja
+
+                for (Row row : sheet) {
+                    if (row.getRowNum() == 0) {
+                        continue; // Omite encabezados
+                    }
+                    org.apache.poi.ss.usermodel.Cell codigoCell = row.getCell(0); // Columna con código del curso
+                    if (codigoCell != null) {
+                        codigos.add(codigoCell.getStringCellValue());
+                    }
+                }
+            }
+            return codigos;
         }
         
-        
+        public String obtenerCodigoPorNombre(String nombreCurso) throws IOException {
+    try (FileInputStream fis = new FileInputStream(ETIQUETAS_PATH); Workbook workbook = new XSSFWorkbook(fis)) {
+        Sheet sheet = workbook.getSheetAt(0); // Asume que está en la primera hoja
+
+        for (Row row : sheet) {
+            if (row.getRowNum() == 0) {
+                continue; // Omite encabezados
+            }
+
+            // Asume que el nombre está en la columna 1 y el código en la columna 0
+            org.apache.poi.ss.usermodel.Cell nombreCell = row.getCell(1); // Columna con nombre del curso
+            org.apache.poi.ss.usermodel.Cell codigoCell = row.getCell(0); // Columna con código del curso
+
+            if (nombreCell != null && codigoCell != null) {
+                if (nombreCell.getStringCellValue().equalsIgnoreCase(nombreCurso)) {
+                    return codigoCell.getStringCellValue(); // Devuelve el código cuando encuentra el nombre
+                }
+            }
+        }
+    }
+    return null; // Si no se encuentra el curso
+}
+
+
+        public List<String> obtenerNombresDeCursos() throws IOException {
+            List<String> nombres = new ArrayList<>();
+            try (FileInputStream fis = new FileInputStream(ETIQUETAS_PATH); Workbook workbook = new XSSFWorkbook(fis)) {
+                Sheet sheet = workbook.getSheetAt(0); // Asume que está en la primera hoja
+
+                for (Row row : sheet) {
+                    if (row.getRowNum() == 0) {
+                        continue; // Omite encabezados
+                    }
+                    org.apache.poi.ss.usermodel.Cell nombreCell = row.getCell(1); // Columna con nombre del curso
+                    if (nombreCell != null) {
+                        nombres.add(nombreCell.getStringCellValue());
+                    }
+                }
+            }
+            return nombres;
+        }
+
         // Método para obtener nombres completos del nuevo Excel
         public List<String> obtenerDocentesAcreditadosPorCurso(String nombreCurso) throws IOException {
             List<String> nombresAcreditados = new ArrayList<>();
@@ -676,13 +892,11 @@ public class ExportacionReconocimientosController implements Initializable {
                     if (row.getRowNum() < 8) {
                         continue;
                     }
-                    
-                    
+
                     org.apache.poi.ss.usermodel.Cell nombreCursoCell = row.getCell(1); // Columna "Nombre de los evento"
                     //System.out.println("596: " +nombreCursoCell.getStringCellValue());
                     if (nombreCursoCell != null && nombreCursoCell.getCellType() == CELL_TYPE_STRING
                             && nombreCursoCell.getStringCellValue().equalsIgnoreCase(nombreCurso)) {
-                        
 
                         // Obtenemos cada celda relevante de la fila, usando la ruta completa de `Cell`
                         org.apache.poi.ss.usermodel.Cell competenciasCell = row.getCell(3); // Columna "Competencias a desarrollar"
