@@ -1,6 +1,6 @@
 /*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/javafx/FXMLController.java to edit this template
+     * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+     * Click nbfs://nbhost/SystemFileSystem/Templates/javafx/FXMLController.java to edit this template
  */
 package vistas;
 
@@ -15,6 +15,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.net.URL;
 import java.time.Year;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,6 +51,79 @@ public class ModificacionDatosController implements Initializable {
     private Spinner<Integer> año;
     @FXML
     private ComboBox<String> periodoEscolar;
+    @FXML
+    private ComboBox<String> departamento;
+
+    private HashMap<String, Integer> docentesPorDepartamento = new HashMap<>();
+
+    public void regresarVentana(MouseEvent event) throws IOException {
+        // Verificar si hay datos en los campos
+        boolean hayDatos = !directorField.getText().trim().isEmpty()
+                || !coordinadorField.getText().trim().isEmpty()
+                || !jefeDeptoField.getText().trim().isEmpty()
+                || (totalDocentes.getValue() != null && totalDocentes.getValue() != 100)
+                || periodoEscolar.getValue() != null;
+        if (hayDatos) {
+            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacion.setTitle("Confirmación");
+            confirmacion.setHeaderText("¿Deseas guardar los datos?");
+            confirmacion.setContentText("Tienes datos ingresados en los campos. ¿Deseas guardarlos antes de regresar?");
+
+            ButtonType botonGuardar = new ButtonType("Guardar");
+            ButtonType botonNoGuardar = new ButtonType("No Guardar");
+            ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+            confirmacion.getButtonTypes().setAll(botonGuardar, botonNoGuardar, botonCancelar);
+            Optional<ButtonType> resultado = confirmacion.showAndWait();
+
+            if (resultado.isPresent()) {
+                if (resultado.get() == botonGuardar) {
+                    guardarDatosEnExcel(event);
+                    ControladorGeneral.regresar(event, "Principal", getClass());
+                } else if (resultado.get() == botonNoGuardar) {
+                    ControladorGeneral.regresar(event, "Principal", getClass());
+                }
+            }
+        } else {
+            ControladorGeneral.regresar(event, "Principal", getClass());
+        }
+    }
+
+    // Método para mostrar alertas en la aplicación
+    private void mostrarAlerta(String titulo, String mensaje, AlertType tipo) {
+        Alert alerta = new Alert(tipo);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
+    }
+
+    //Métodos de los botones de la barra superior :)
+    public void minimizarVentana(MouseEvent event) {
+        ControladorGeneral.minimizarVentana(event);
+    }
+
+    // Nuevo método para restablecer campos a valores iniciales
+    public void restablecerCamposValoresIniciales() {
+        directorField.clear();
+        coordinadorField.clear();
+        jefeDeptoField.clear();
+        totalDocentes.getValueFactory().setValue(100); // Valor inicial del Spinner
+        año.getValueFactory().setValue(Calendar.getInstance().get(Calendar.YEAR)); // Valor inicial del año
+        periodoEscolar.getSelectionModel().clearSelection(); // Limpiar selección del ComboBox
+    }
+
+    // Método auxiliar para sumar docentes en un rango de filas
+    private int sumarDocentes(Sheet sheet, int filaInicio, int filaFin) {
+        int suma = 0;
+        for (int i = filaInicio; i <= filaFin; i++) {
+            Row row = sheet.getRow(i);
+            if (row != null && row.getCell(1) != null) {
+                suma += row.getCell(1).getNumericCellValue();
+            }
+        }
+        return suma;
+    }
 
     public void guardarDatosEnExcel(MouseEvent event) {
         if (!validarCampos()) {
@@ -77,35 +151,50 @@ public class ModificacionDatosController implements Initializable {
                 sheet = workbook.createSheet(nombreHoja);
             }
 
-            // Configurar las cabeceras si es una hoja nueva
+            // Configuración de cabeceras si es una hoja nueva
             if (sheet.getPhysicalNumberOfRows() == 0) {
-                Row headerRow = sheet.createRow(0);
-                headerRow.createCell(0).setCellValue("Director:");
-                headerRow = sheet.createRow(1);
-                headerRow.createCell(0).setCellValue("Jefe de Departamento:");
-                headerRow = sheet.createRow(2);
-                headerRow.createCell(0).setCellValue("Coordinador:");
-                headerRow = sheet.createRow(3);
-                headerRow.createCell(0).setCellValue("Periodo Enero-Julio:");
-                headerRow = sheet.createRow(4);
-                headerRow.createCell(0).setCellValue("Periodo Agosto-Diciembre:");
+                sheet.createRow(0).createCell(0).setCellValue("Director:");
+                sheet.createRow(1).createCell(0).setCellValue("Jefe de Departamento:");
+                sheet.createRow(2).createCell(0).setCellValue("Coordinador:");
+                sheet.createRow(3).createCell(0).setCellValue("Periodo Enero-Julio:");
+                sheet.createRow(12).createCell(0).setCellValue("Periodo Agosto-Diciembre:");
             }
 
-            // Actualizar datos básicos
-            sheet.getRow(0).createCell(1).setCellValue(directorField.getText());
-            sheet.getRow(1).createCell(1).setCellValue(jefeDeptoField.getText());
-            sheet.getRow(2).createCell(1).setCellValue(coordinadorField.getText());
+            // Actualizar datos básicos solo si los campos no están vacíos
+            if (!directorField.getText().trim().isEmpty()) {
+                sheet.getRow(0).createCell(1).setCellValue(directorField.getText());
+            }
+            if (!jefeDeptoField.getText().trim().isEmpty()) {
+                sheet.getRow(1).createCell(1).setCellValue(jefeDeptoField.getText());
+            }
+            if (!coordinadorField.getText().trim().isEmpty()) {
+                sheet.getRow(2).createCell(1).setCellValue(coordinadorField.getText());
+            }
 
-            // Actualizar período y total de docentes
-            int periodo = periodoEscolar.getValue().equals("Enero-Julio") ? 1 : 2;
-            int fila = periodo == 1 ? 3 : 4; // Fila 4 para Enero-Julio, Fila 5 para Agosto-Diciembre
+            // Obtener el periodo seleccionado
+            String periodoSeleccionado = periodoEscolar.getValue();
+            int filaInicio = periodoSeleccionado.equals("Enero-Julio") ? 4 : 13; // Fila base según el periodo
 
-            Row row = sheet.getRow(fila);
-            row.createCell(1).setCellValue(totalDocentes.getValue());
-            //row.createCell(2).setCellValue(totalDocentesField.getValue());
+            // Guardar docentes por departamento en el periodo correspondiente
+            int fila = filaInicio;
+            for (String depto : departamento.getItems()) {
+                Row row = sheet.getRow(fila);
+                if (row == null) {
+                    row = sheet.createRow(fila);
+                }
+                row.createCell(0).setCellValue(depto); // Nombre del departamento
+                row.createCell(1).setCellValue(docentesPorDepartamento.getOrDefault(depto, 100)); // Número de docentes
+                fila++;
+            }
+            // Calcular y escribir la suma total de docentes en los periodos
+            int sumaEneroJulio = sumarDocentes(sheet, 4, 12); // Filas del periodo Enero-Julio
+            int sumaAgostoDiciembre = sumarDocentes(sheet, 13, 21); // Filas del periodo Agosto-Diciembre
+
+            sheet.getRow(3).createCell(1).setCellValue(sumaEneroJulio); // Total en Enero-Julio
+            sheet.getRow(12).createCell(1).setCellValue(sumaAgostoDiciembre); // Total en Agosto-Diciembre
 
             // Ajustar el ancho de las columnas automáticamente
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i <= 1; i++) {
                 sheet.autoSizeColumn(i);
             }
 
@@ -125,8 +214,25 @@ public class ModificacionDatosController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
+
+        departamento.getItems().addAll(
+                "CIENCIAS BASICAS",
+                "CIENCIAS ECONOMICO ADMINISTRATIVO",
+                "CIENCIAS DE LA TIERRA",
+                "INGENIERIA INDUSTRIAL",
+                "METAL MECANICA",
+                "QUIMICA Y BIOQUIMICA",
+                "SISTEMAS COMPUTACIONALES",
+                "POSGRADO"
+        );
+
+        // Inicializar valores por defecto en el HashMap
+        for (String depto : departamento.getItems()) {
+            docentesPorDepartamento.put(depto, 10); // Por defecto, 10 docentes
+        }
+
         // Configuración del Spinner de docentes
-        SpinnerValueFactory<Integer> docentesFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(100, 800, 100);
+        SpinnerValueFactory<Integer> docentesFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(10, 100, 10);
         totalDocentes.setValueFactory(docentesFactory);
         totalDocentes.setEditable(true);
 
@@ -136,23 +242,18 @@ public class ModificacionDatosController implements Initializable {
         año.setValueFactory(añoFactory);
         año.setEditable(true);
 
-        // Validación para el Spinner de docentes
-        totalDocentes.getEditor().focusedProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue) { // Cuando pierde el foco
-                try {
-                    String text = totalDocentes.getEditor().getText();
-                    if (text.isEmpty()) {
-                        totalDocentes.getValueFactory().setValue(100);
-                    } else {
-                        int value = Integer.parseInt(text);
-                        if (value < 100) {
-                            mostrarAlerta("Validación", "El número mínimo de docentes debe ser 100", AlertType.WARNING);
-                            totalDocentes.getValueFactory().setValue(100);
-                        }
-                    }
-                } catch (NumberFormatException e) {
-                    totalDocentes.getValueFactory().setValue(100);
-                }
+        // Actualizar el Spinner de docentes al seleccionar un departamento
+        departamento.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                totalDocentes.getValueFactory().setValue(docentesPorDepartamento.get(newValue));
+            }
+        });
+
+        // Guardar cambios en el HashMap cuando se edita el Spinner
+        totalDocentes.valueProperty().addListener((observable, oldValue, newValue) -> {
+            String deptoSeleccionado = departamento.getValue();
+            if (deptoSeleccionado != null) {
+                docentesPorDepartamento.put(deptoSeleccionado, newValue);
             }
         });
 
@@ -170,7 +271,7 @@ public class ModificacionDatosController implements Initializable {
                         if (value < 2000 || value > 2100) {
                             mostrarAlerta("Validación", "El año debe estar entre 2000 y 2100", AlertType.WARNING);
                             año.getValueFactory().setValue(añoActual);
-                            
+
                         } else {
                             año.getValueFactory().setValue(value);
                         }
@@ -215,8 +316,8 @@ public class ModificacionDatosController implements Initializable {
             } catch (IOException ex) {
                 Logger.getLogger(ModificacionDatosController.class.getName()).log(Level.SEVERE, null, ex);
             }
-        });     
-        
+        });
+
         botonMinimizar.setOnMouseClicked(this::minimizarVentana);
         botonRegresar.setOnMouseClicked(event -> {
             try {
@@ -282,80 +383,6 @@ public class ModificacionDatosController implements Initializable {
             return false;
         }
 
-        // Validar número de docentes
-        try {
-            int docentes = Integer.parseInt(totalDocentes.getEditor().getText());
-            if (docentes < 100) {
-                mostrarAlerta("Validación", "El número mínimo de docentes debe ser 100.", AlertType.WARNING);
-                totalDocentes.requestFocus();
-                return false;
-            }
-        } catch (NumberFormatException e) {
-            mostrarAlerta("Validación", "Por favor ingrese un número válido de docentes.", AlertType.WARNING);
-            totalDocentes.requestFocus();
-            return false;
-        }
-
         return true;
     }
-    // Los demás métodos (cerrarVentana, minimizarVentana, regresarVentana, limpiarCampos, mostrarAlerta) 
-    // permanecen igual que en tu código original
-
-    //Métodos de los botones de la barra superior :)
-    public void minimizarVentana(MouseEvent event) {
-        ControladorGeneral.minimizarVentana(event);
-    }
-
-    public void regresarVentana(MouseEvent event) throws IOException {
-        // Verificar si hay datos en los campos
-        boolean hayDatos = !directorField.getText().trim().isEmpty()
-                || !coordinadorField.getText().trim().isEmpty()
-                || !jefeDeptoField.getText().trim().isEmpty()
-                || (totalDocentes.getValue() != null && totalDocentes.getValue() != 100)
-                || periodoEscolar.getValue() != null;
-        if (hayDatos) {
-            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
-            confirmacion.setTitle("Confirmación");
-            confirmacion.setHeaderText("¿Deseas guardar los datos?");
-            confirmacion.setContentText("Tienes datos ingresados en los campos. ¿Deseas guardarlos antes de regresar?");
-
-            ButtonType botonGuardar = new ButtonType("Guardar");
-            ButtonType botonNoGuardar = new ButtonType("No Guardar");
-            ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
-
-            confirmacion.getButtonTypes().setAll(botonGuardar, botonNoGuardar, botonCancelar);
-            Optional<ButtonType> resultado = confirmacion.showAndWait();
-
-            if (resultado.isPresent()) {
-                if (resultado.get() == botonGuardar) {
-                    guardarDatosEnExcel(event);
-                    ControladorGeneral.regresar(event, "Principal", getClass());
-                } else if (resultado.get() == botonNoGuardar) {
-                    ControladorGeneral.regresar(event, "Principal", getClass());
-                }
-            }
-        } else {
-            ControladorGeneral.regresar(event, "Principal", getClass());
-        }
-    }
-
-    // Nuevo método para restablecer campos a valores iniciales
-    public void restablecerCamposValoresIniciales() {
-        directorField.clear();
-        coordinadorField.clear();
-        jefeDeptoField.clear();
-        totalDocentes.getValueFactory().setValue(100); // Valor inicial del Spinner
-        año.getValueFactory().setValue(Calendar.getInstance().get(Calendar.YEAR)); // Valor inicial del año
-        periodoEscolar.getSelectionModel().clearSelection(); // Limpiar selección del ComboBox
-    }
-
-    // Método para mostrar alertas en la aplicación
-    private void mostrarAlerta(String titulo, String mensaje, AlertType tipo) {
-        Alert alerta = new Alert(tipo);
-        alerta.setTitle(titulo);
-        alerta.setHeaderText(null);
-        alerta.setContentText(mensaje);
-        alerta.showAndWait();
-    }
-
 }
