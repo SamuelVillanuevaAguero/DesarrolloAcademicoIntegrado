@@ -3,6 +3,7 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.Image?>
@@ -30,24 +31,14 @@
       <Button fx:id="botonBuscar" layoutX="371.0" layoutY="195.0" mnemonicParsing="false" onAction="#buscarCurso" styleClass="button-azul" text="Buscar" textFill="WHITE" />
       <Button fx:id="botonGuardar" layoutX="509.0" layoutY="512.0" mnemonicParsing="false" onAction="#guardarDatos" styleClass="button-azul" text="Guardar" textFill="WHITE" />
       <Button layoutX="886.0" layoutY="512.0" mnemonicParsing="false" onAction="#exportarReconocimientos" styleClass="button-azul" text="Exportar" textFill="#fffdfd" />
-      <ImageView fitHeight="86.0" fitWidth="200.0" layoutX="602.0" layoutY="45.0">
+      <ImageView fitHeight="86.0" fitWidth="200.0" layoutX="-3.0" layoutY="55.0">
          <image>
             <Image url="@../utilerias/reconocimientos/logoTECNM.png" />
          </image>
       </ImageView>
-      <ImageView layoutX="827.0" layoutY="43.0">
+      <ImageView layoutX="923.0" layoutY="42.0">
          <image>
             <Image url="@../utilerias/reconocimientos/logoITZ.png" />
-         </image>
-      </ImageView>
-      <ImageView fitHeight="57.0" fitWidth="200.0" layoutX="136.0" layoutY="52.0">
-         <image>
-            <Image url="@../utilerias/reconocimientos/logoGobierno.png" />
-         </image>
-      </ImageView>
-      <ImageView fitHeight="71.0" fitWidth="200.0" layoutX="371.0" layoutY="45.0">
-         <image>
-            <Image url="@../utilerias/reconocimientos/logoEducacion.png" />
          </image>
       </ImageView>
       <TextField fx:id="txtcodigodelcurso" layoutX="158.0" layoutY="193.0" prefHeight="42.0" prefWidth="200.0" styleClass="text-field" />
@@ -66,5 +57,11 @@
          </image>
       </ImageView>
       <TextArea fx:id="txtFechaCurso" layoutX="158.0" layoutY="354.0" prefHeight="86.0" prefWidth="278.0" wrapText="true" />
+      <Label layoutX="136.0" layoutY="131.0" text="Selecciona una opcion para  realizar tu busqueda" />
+      <RadioButton fx:id="radiobotonCodigo" layoutX="179.0" layoutY="157.0" mnemonicParsing="false" onAction="#seleccionCodigo" text="Codigo" />
+      <RadioButton fx:id="radiobotonNombre" layoutX="288.0" layoutY="157.0" mnemonicParsing="false" onAction="#seleccionNombre" text="Nombre" />
+      <Label layoutX="196.0" layoutY="42.0" styleClass="title" text="Exportación de reconocimientos" />
+      <ComboBox fx:id="checkCodigos" layoutX="158.0" layoutY="195.0" prefHeight="38.0" prefWidth="200.0" />
+      <ComboBox fx:id="checkNombres" layoutX="160.0" layoutY="272.0" prefHeight="38.0" prefWidth="266.0" />
    </children>
 </AnchorPane>

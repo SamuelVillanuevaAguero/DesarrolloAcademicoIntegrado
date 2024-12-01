@@ -333,7 +333,7 @@ public class RespaldoController implements Initializable {
             if (!validarEstructuraDirectorios(dirTemp)) {
                 eliminarDirectorio(dirTemp);
                 throw new IOException("El archivo de respaldo debe contener el directorio 'Gestion_de_Cursos' "
-                        + "con las carpetas: Archivos_importados, Archivos_exportados y Sistema");
+                        + "con las carpetas:\n-Archivos_importados\n-Archivos_exportados\n-Sistema");
             }
 
             // Si la validación es exitosa, eliminar el directorio existente

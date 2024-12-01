@@ -20,9 +20,13 @@ import utilerias.general.ControladorGeneral;
  */
 public class ImportacionArchivosController implements Initializable {
 
+    private File ultimoDirectorioUsado;
+
     private File programaCapacitacion;
-    private File listado;
-    private File formato;
+
+    private Map<String, List<File>> listadosTemporales = new HashMap<>();
+    private Map<String, List<File>> formatosTemporales = new HashMap<>();
+
     /**
      * Initializes the controller class.
      */
@@ -67,17 +71,67 @@ public class ImportacionArchivosController implements Initializable {
     public void cargarProgramaCap(MouseEvent event) {
         FileChooser selectorArchivos = new FileChooser();
         selectorArchivos.setTitle("Seleccionar archivo");
-        selectorArchivos.setInitialDirectory(new File(System.getProperty("user.home")));
+        // Usar el último directorio usado o el directorio de usuario
+        if (ultimoDirectorioUsado != null && ultimoDirectorioUsado.exists()) {
+            selectorArchivos.setInitialDirectory(ultimoDirectorioUsado);
+        } else {
+            selectorArchivos.setInitialDirectory(new File(System.getProperty("user.home")));
+        }
+
         selectorArchivos.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Todos los archivos", "*.xlsx", "*.xls"),
-                //new FileChooser.ExtensionFilter("PDF", "*.pdf"),
-                new FileChooser.ExtensionFilter("Excel", "*.xlsx", "*.xls")
-        //new FileChooser.ExtensionFilter("Word", ".doc", ".docx")
+                new FileChooser.ExtensionFilter("Archivos Excel", "*.xlsx", "*.xls")
         );
 
         programaCapacitacion = selectorArchivos.showOpenDialog(botonPC.getScene().getWindow());
         if (programaCapacitacion != null) {
-            labelPC.setText(programaCapacitacion.getName());
+            // Actualizar último directorio usado
+            ultimoDirectorioUsado = programaCapacitacion.getParentFile();
+            labelPC.setText("(1) archivo(s) cargados");
+        }
+
+    }
+
+    public void cargarListado(MouseEvent event) {
+        if (comboBoxListados.getValue() == null) {
+            mostrarError("Debe seleccionar primero una opción de listado.");
+            return;
+        }
+
+        FileChooser selectorArchivos = new FileChooser();
+        selectorArchivos.setTitle("Seleccionar archivo");
+
+        if (ultimoDirectorioUsado != null && ultimoDirectorioUsado.exists()) {
+            selectorArchivos.setInitialDirectory(ultimoDirectorioUsado);
+        } else {
+            selectorArchivos.setInitialDirectory(new File(System.getProperty("user.home")));
+        }
+
+        selectorArchivos.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Archivos Excel", "*.xlsx", "*.xls")
+        );
+
+        File listadoCargado = selectorArchivos.showOpenDialog(botonPC.getScene().getWindow());
+        if (listadoCargado != null) {
+            ultimoDirectorioUsado = listadoCargado.getParentFile();
+
+            String tipoListado = comboBoxListados.getValue();
+
+            // Si ya existe este tipo de listado, reemplazamos el archivo
+            if (listadosTemporales.containsKey(tipoListado)) {
+                listadosTemporales.get(tipoListado).clear();
+            } else {
+                // Si no existe, creamos una nueva lista
+                listadosTemporales.put(tipoListado, new ArrayList<>());
+            }
+
+            // Agregamos el nuevo archivo
+            listadosTemporales.get(tipoListado).add(listadoCargado);
+
+            // Calculamos el total de tipos de listados diferentes cargados
+            int totalListados = listadosTemporales.size();
+
+            // Actualizamos el label
+            labelListado.setText(String.format("(%d) archivo(s) cargados", totalListados));
         }
     }
 
@@ -89,12 +143,16 @@ public class ImportacionArchivosController implements Initializable {
 
         FileChooser selectorArchivos = new FileChooser();
         selectorArchivos.setTitle("Seleccionar archivo");
-        selectorArchivos.setInitialDirectory(new File(System.getProperty("user.home")));
+
+        if (ultimoDirectorioUsado != null && ultimoDirectorioUsado.exists()) {
+            selectorArchivos.setInitialDirectory(ultimoDirectorioUsado);
+        } else {
+            selectorArchivos.setInitialDirectory(new File(System.getProperty("user.home")));
+        }
 
         String tipoFormato = comboBoxFormatos.getValue();
         if (tipoFormato.equals("Formato de hojas membretadas para reconocimientos")) {
             selectorArchivos.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Archivos PDF", "*.pdf"),
                     new FileChooser.ExtensionFilter("Archivos Word", "*.doc", "*.docx")
             );
         } else {
@@ -103,28 +161,28 @@ public class ImportacionArchivosController implements Initializable {
             );
         }
 
-        formato = selectorArchivos.showOpenDialog(botonPC.getScene().getWindow());
-        if (formato != null) {
-            labelFormato.setText(formato.getName());
-        }
-    }
+        File formatoCargado = selectorArchivos.showOpenDialog(botonPC.getScene().getWindow());
+        if (formatoCargado != null) {
+            ultimoDirectorioUsado = formatoCargado.getParentFile();
 
-    public void cargarListado(MouseEvent event) {
-        if (comboBoxListados.getValue() == null) {
-            mostrarError("Debe seleccionar primero una opción de listado.");
-            return;
-        }
+            String tipoFormat = comboBoxFormatos.getValue();
 
-        FileChooser selectorArchivos = new FileChooser();
-        selectorArchivos.setTitle("Seleccionar archivo");
-        selectorArchivos.setInitialDirectory(new File(System.getProperty("user.home")));
-        selectorArchivos.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Archivos Excel", "*.xlsx", "*.xls")
-        );
+            // Si ya existe este tipo de formato, reemplazamos el archivo
+            if (formatosTemporales.containsKey(tipoFormat)) {
+                formatosTemporales.get(tipoFormat).clear();
+            } else {
+                // Si no existe, creamos una nueva lista
+                formatosTemporales.put(tipoFormat, new ArrayList<>());
+            }
 
-        listado = selectorArchivos.showOpenDialog(botonPC.getScene().getWindow());
-        if (listado != null) {
-            labelListado.setText(listado.getName());
+            // Agregamos el nuevo archivo
+            formatosTemporales.get(tipoFormat).add(formatoCargado);
+
+            // Calculamos el total de tipos de formatos diferentes cargados
+            int totalFormatos = formatosTemporales.size();
+
+            // Actualizamos el label
+            labelFormato.setText(String.format("(%d) archivo(s) cargados", totalFormatos));
         }
     }
 
@@ -161,9 +219,9 @@ public class ImportacionArchivosController implements Initializable {
 
         // Crear subdirectorios de archivos importados
         crearDirectorio(directorioImportados + separador + "formato_de_hojas_membretadas_para_reconocimientos");
-        crearDirectorio(directorioImportados + separador + "formato_de_lista_de_asistencias");
+        crearDirectorio(directorioImportados + separador + "formato_de_lista_de_asistencia");
         crearDirectorio(directorioImportados + separador + "formato_de_reporte_para_docentes_capacitados");
-        crearDirectorio(directorioImportados + separador + "listado_de_pre_regitro_a_cursos_de_capacitacion");
+        crearDirectorio(directorioImportados + separador + "listado_de_pre_regitros_a_cursos_de_capacitacion");
         crearDirectorio(directorioImportados + separador + "listado_de_etiquetas_de_cursos");
         crearDirectorio(directorioImportados + separador + "listado_de_deteccion_de_necesidades");
         crearDirectorio(directorioImportados + separador + "programa_institucional");
@@ -199,11 +257,9 @@ public class ImportacionArchivosController implements Initializable {
         }
     }
 
-    public void guardarArchivos(MouseEvent evento) {
-        String directorioUsuario = System.getProperty("user.home");
+     public void guardarArchivos(MouseEvent evento) {
+        String directorioBase = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos";
         String separador = File.separator;
-        List<String> archivosImportados = new ArrayList<>();
-        boolean archivoImportadoExitoso = false;
 
         // Determinar el período actual
         Calendar calendario = Calendar.getInstance();
@@ -214,107 +270,96 @@ public class ImportacionArchivosController implements Initializable {
                 ? "1-" + year
                 : "2-" + year;
 
-        // Ruta base para archivos importados
-        String directorioBase = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos";
         String directorioImportados = directorioBase + separador + "Archivos_importados"
                 + separador + year + separador + carpetaPeriodo;
 
-        // Manejar Programa de Capacitación
+        int totalArchivosImportados = 0;
+
+        // Guardar Programa de Capacitación
         if (programaCapacitacion != null) {
-            String dirPC = directorioImportados + separator + "programa_institucional";
-            File directorioPC = new File(dirPC);
-
-            // Encontrar el siguiente número de semana disponible
-            int numeroSemana = 1;
-            String extension = getExtensionArchivo(programaCapacitacion);
-            File archivoDestino;
-            do {
-                archivoDestino = new File(dirPC + separador + "programa_institucional_(Semana_"
-                        + numeroSemana + ")" + extension);
-                numeroSemana++;
-            } while (archivoDestino.exists());
-
-            try {
-                java.nio.file.Files.copy(programaCapacitacion.toPath(), archivoDestino.toPath());
-                archivosImportados.add("programa_institucional");
-                archivoImportadoExitoso = true;
-            } catch (IOException e) {
-                mostrarError("Error al copiar el programa institucional: " + e.getMessage());
-            }
+            String dirPC = directorioImportados + separador + "programa_institucional";
+            totalArchivosImportados += guardarArchivoEnDirectorio(programaCapacitacion, dirPC, "programa_institucional");
         }
 
-        // Manejar Listados según selección del ComboBox
-        if (listado != null && comboBoxListados.getValue() != null) {
-            String tipoListado = comboBoxListados.getValue();
+        // Guardar Listados
+        for (Map.Entry<String, List<File>> entry : listadosTemporales.entrySet()) {
+            String tipoListado = entry.getKey();
+            List<File> archivosListado = entry.getValue();
             String nombreCarpeta = convertirNombreCarpeta(tipoListado);
             String dirListado = directorioImportados + separador + nombreCarpeta;
 
-            int numeroSemana = 1;
-            String extension = getExtensionArchivo(listado);
-            File archivoDestino;
-            do {
-                archivoDestino = new File(dirListado + separador + "listado_(Semana_"
-                        + numeroSemana + ")" + extension);
-                numeroSemana++;
-            } while (archivoDestino.exists());
-
-            try {
-                java.nio.file.Files.copy(listado.toPath(), archivoDestino.toPath());
-                archivosImportados.add(nombreCarpeta);
-                archivoImportadoExitoso = true;
-            } catch (IOException e) {
-                mostrarError("Error al copiar el listado: " + e.getMessage());
+            for (File archivo : archivosListado) {
+                totalArchivosImportados += guardarArchivoEnDirectorio(archivo, dirListado, "listado");
             }
         }
 
-        // Manejar Formatos según selección del ComboBox
-        if (formato != null && comboBoxFormatos.getValue() != null) {
-            String tipoFormato = comboBoxFormatos.getValue();
+        // Guardar Formatos
+        for (Map.Entry<String, List<File>> entry : formatosTemporales.entrySet()) {
+            String tipoFormato = entry.getKey();
+            List<File> archivosFormato = entry.getValue();
             String nombreCarpeta = convertirNombreCarpeta(tipoFormato);
             String dirFormato = directorioImportados + separador + nombreCarpeta;
 
-            int numeroSemana = 1;
-            String extension = getExtensionArchivo(formato);
-            File archivoDestino;
-            do {
-                archivoDestino = new File(dirFormato + separador + "formato_(Version_"
-                        + numeroSemana + ")" + extension);
-                numeroSemana++;
-            } while (archivoDestino.exists());
-
-            try {
-                java.nio.file.Files.copy(formato.toPath(), archivoDestino.toPath());
-                archivosImportados.add(nombreCarpeta);
-                archivoImportadoExitoso = true;
-            } catch (IOException e) {
-                mostrarError("Error al copiar el formato: " + e.getMessage());
+            for (File archivo : archivosFormato) {
+                totalArchivosImportados += guardarArchivoEnDirectorio(archivo, dirFormato, "formato");
             }
         }
 
-        if (archivoImportadoExitoso) {
-            String mensaje = "Se importó correctamente el archivo en la(s) carpeta(s): "
-                    + String.join(", ", archivosImportados)
-                    + " del período " + carpetaPeriodo;
-            mostrarMensajeExito(mensaje);
+        // Mostrar mensaje de éxito y limpiar
+        if (totalArchivosImportados > 0) {
+            mostrarMensajeExito("Se importaron correctamente " + totalArchivosImportados + " archivo(s)");
             limpiarCampos();
         } else {
             mostrarError("No se ha seleccionado ningún archivo para importar");
         }
     }
+     
+     private int guardarArchivoEnDirectorio(File archivo, String directorioDestino, String prefijo) {
+        if (archivo == null) {
+            return 0;
+        }
+
+        File dirDestino = new File(directorioDestino);
+        dirDestino.mkdirs();
+
+        int numeroSemana = 1;
+        String extension = getExtensionArchivo(archivo);
+        File archivoDestino;
+        do {
+            // Usar Version para formatos y Semana para listados, con la primera letra en mayúscula
+            String numeracion = prefijo.equals("formato")
+                    ? "_(Version_" + numeroSemana + ")"
+                    : "_(Semana_" + numeroSemana + ")";
+
+            archivoDestino = new File(directorioDestino + separator
+                    + prefijo + numeracion + extension);
+
+            numeroSemana++;
+        } while (archivoDestino.exists());
+
+        try {
+            java.nio.file.Files.copy(archivo.toPath(), archivoDestino.toPath());
+            return 1;
+        } catch (IOException e) {
+            mostrarError("Error al copiar archivo: " + e.getMessage());
+            return 0;
+        }
+    }
 
     private void limpiarCampos() {
-        // Primero limpiamos los labels y archivos
         labelPC.setText("");
         labelListado.setText("");
         labelFormato.setText("");
+
         programaCapacitacion = null;
-        listado = null;
-        formato = null;
+        listadosTemporales.clear();
+        formatosTemporales.clear();
 
         comboBoxListados.setValue(null);
         comboBoxFormatos.setValue(null);
         comboBoxListados.setPromptText("Selecciona una opción");
         comboBoxFormatos.setPromptText("Selecciona una opción");
+
     }
 
 // Método auxiliar para obtener la extensión del archivo
@@ -377,13 +422,13 @@ public class ImportacionArchivosController implements Initializable {
         comboBoxFormatos.setValue(null);
 
         comboBoxListados.setItems(FXCollections.observableArrayList(
-                "Listado de pre regitro a cursos de capacitación",
+                "Listado de pre regitros a cursos de capacitación",
                 "Listado de etiquetas de cursos",
                 "Listado de detección de necesidades"));
 
         comboBoxFormatos.setItems(FXCollections.observableArrayList(
                 "Formato de hojas membretadas para reconocimientos",
-                "Formato de lista de asistencias",
+                "Formato de lista de asistencia",
                 "Formato de reporte para docentes capacitados"));
 
         comboBoxListados.setPromptText("Selecciona una opción");
