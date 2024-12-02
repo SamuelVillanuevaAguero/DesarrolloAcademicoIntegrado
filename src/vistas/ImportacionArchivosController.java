@@ -259,6 +259,7 @@ public class ImportacionArchivosController implements Initializable {
         crearDirectorio(directorioImportados + separador + "listado_de_pre_regitros_a_cursos_de_capacitacion");
         crearDirectorio(directorioImportados + separador + "listado_de_etiquetas_de_cursos");
         crearDirectorio(directorioImportados + separador + "listado_de_deteccion_de_necesidades");
+        crearDirectorio(directorioImportados + separador + "listado_de_docentes_adscritos");
         crearDirectorio(directorioImportados + separador + "programa_institucional");
 
         // Crear subdirectorios de archivos exportados
@@ -459,7 +460,8 @@ public class ImportacionArchivosController implements Initializable {
         comboBoxListados.setItems(FXCollections.observableArrayList(
                 "Listado de pre regitros a cursos de capacitación",
                 "Listado de etiquetas de cursos",
-                "Listado de detección de necesidades"));
+                "Listado de detección de necesidades",
+                "Listado de docentes adscritos"));
 
         comboBoxFormatos.setItems(FXCollections.observableArrayList(
                 "Formato de hojas membretadas para reconocimientos",
