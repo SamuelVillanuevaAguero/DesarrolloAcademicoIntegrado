@@ -65,7 +65,42 @@ public class ImportacionArchivosController implements Initializable {
     }
 
     public void regresarVentana(MouseEvent event) throws IOException {
-        ControladorGeneral.regresar(event, "Principal", getClass());
+        // Verificar si hay archivos sin guardar
+        boolean hayArchivosSinGuardar = (programaCapacitacion != null)
+                || (!listadosTemporales.isEmpty())
+                || (!formatosTemporales.isEmpty());
+
+        if (hayArchivosSinGuardar) {
+            // Crear un cuadro de diálogo de confirmación
+            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacion.setTitle("Archivos sin guardar");
+            confirmacion.setHeaderText("Tiene archivos sin guardar");
+            confirmacion.setContentText("¿Desea guardar los cambios antes de salir?");
+
+            // Añadir botones personalizados
+            ButtonType botonGuardar = new ButtonType("Guardar");
+            ButtonType botonSalirSinGuardar = new ButtonType("Salir sin guardar");
+            ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+            confirmacion.getButtonTypes().setAll(botonGuardar, botonSalirSinGuardar, botonCancelar);
+
+            // Mostrar el diálogo y obtener la respuesta
+            Optional<ButtonType> resultado = confirmacion.showAndWait();
+
+            if (resultado.get() == botonGuardar) {
+                // Llamar al método de guardar archivos
+                guardarArchivos(event);
+                // Después de guardar, regresar a la ventana anterior
+                ControladorGeneral.regresar(event, "Principal", getClass());
+            } else if (resultado.get() == botonSalirSinGuardar) {
+                // Salir sin guardar
+                ControladorGeneral.regresar(event, "Principal", getClass());
+            }
+            // Si se selecciona Cancelar, no se hace nada (se queda en la ventana actual)
+        } else {
+            // Si no hay archivos sin guardar, simplemente regresar
+            ControladorGeneral.regresar(event, "Principal", getClass());
+        }
     }
 
     public void cargarProgramaCap(MouseEvent event) {
@@ -257,7 +292,7 @@ public class ImportacionArchivosController implements Initializable {
         }
     }
 
-     public void guardarArchivos(MouseEvent evento) {
+    public void guardarArchivos(MouseEvent evento) {
         String directorioBase = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos";
         String separador = File.separator;
 
@@ -313,8 +348,8 @@ public class ImportacionArchivosController implements Initializable {
             mostrarError("No se ha seleccionado ningún archivo para importar");
         }
     }
-     
-     private int guardarArchivoEnDirectorio(File archivo, String directorioDestino, String prefijo) {
+
+    private int guardarArchivoEnDirectorio(File archivo, String directorioDestino, String prefijo) {
         if (archivo == null) {
             return 0;
         }

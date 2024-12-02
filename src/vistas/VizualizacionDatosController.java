@@ -747,7 +747,7 @@ public class VizualizacionDatosController implements Initializable {
         return "";
     }
 
-// Método helper para extraer el número de versión del nombre del archivo
+    // Método helper para extraer el número de versión del nombre del archivo
     private int extraerNumeroVersion(String nombreArchivo) {
         Pattern pattern = Pattern.compile("formato_\\(version_(\\d+)\\)\\.xlsx", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(nombreArchivo);
@@ -757,7 +757,7 @@ public class VizualizacionDatosController implements Initializable {
         return 0; // Retorna 0 si no encuentra un número de versión
     }
 
-// Método helper para crear celdas de manera segura
+    // Método helper para crear celdas de manera segura
     private void createCell(Row row, int column, Object value, CellStyle style) {
         Cell cell = row.createCell(column);
         if (value instanceof String) {
@@ -804,12 +804,6 @@ public class VizualizacionDatosController implements Initializable {
 
         // Si el campo de búsqueda está vacío, mostramos una advertencia.
         if (textoBusqueda.isEmpty()) {
-            /*
-            Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle("Campo de Búsqueda Vacío");
-            alert.setHeaderText(null);
-            alert.setContentText("Por favor, introduce un valor para buscar.");
-            alert.showAndWait();*/
             tableView.setItems(eventoList);
             return;
         }
@@ -831,12 +825,6 @@ public class VizualizacionDatosController implements Initializable {
 
         // Si no se encuentra ningún resultado, mostramos un mensaje de información y restauramos la tabla completa.
         if (datosFiltrados.isEmpty()) {
-            /*
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Resultado de Búsqueda");
-            alert.setHeaderText(null);
-            alert.setContentText("No se encontró ningún resultado para \"" + textoBusqueda + "\".");
-            alert.showAndWait();*/
 
             // Restauramos la tabla con todos los datos
             tableView.setItems(null);
@@ -845,8 +833,6 @@ public class VizualizacionDatosController implements Initializable {
             tableView.setItems(datosFiltrados);
         }
 
-        // Limpiar el campo de búsqueda después de realizar la búsqueda
-        //campoBusqueda.clear();
     }
 
     @FXML
@@ -973,8 +959,68 @@ public class VizualizacionDatosController implements Initializable {
         ControladorGeneral.minimizarVentana(event);
     }
 
+    @FXML
     public void regresarVentana(MouseEvent event) throws IOException {
-        ControladorGeneral.regresar(event, "Principal", getClass());
+        // Check if there are any unsaved changes
+        if (hayCambiosSinGuardar()) {
+            // Mostrar diálogo de confirmación
+            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacion.setTitle("Cambios sin guardar");
+            confirmacion.setHeaderText("Hay cambios sin guardar");
+            confirmacion.setContentText("¿Desea guardar los cambios antes de salir?");
+
+            // Añadir botones personalizados
+            ButtonType btnGuardar = new ButtonType("Guardar");
+            ButtonType btnSalirSinGuardar = new ButtonType("Salir sin guardar");
+            ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+            confirmacion.getButtonTypes().setAll(btnGuardar, btnSalirSinGuardar, btnCancelar);
+
+            // Mostrar y esperar la respuesta del usuario
+            Optional<ButtonType> resultado = confirmacion.showAndWait();
+
+            if (resultado.get() == btnGuardar) {
+                // Intentar guardar los datos
+                boolean guardadoExitoso = guardarDatos();
+                if (guardadoExitoso) {
+                    // Si se guardó correctamente, regresar a la ventana anterior
+                    ControladorGeneral.regresar(event, "Principal", getClass());
+                } else {
+                    // Si hubo un error al guardar, mostrar mensaje de error
+                    Alert errorAlGuardar = new Alert(Alert.AlertType.ERROR);
+                    errorAlGuardar.setTitle("Error");
+                    errorAlGuardar.setHeaderText(null);
+                    errorAlGuardar.setContentText("No se pudieron guardar los cambios.");
+                    errorAlGuardar.showAndWait();
+                }
+            } else if (resultado.get() == btnSalirSinGuardar) {
+                // Salir sin guardar
+                ControladorGeneral.regresar(event, "Principal", getClass());
+            }
+            // Si se selecciona Cancelar, no hacer nada (permanece en la ventana actual)
+        } else {
+            // Si no hay cambios, regresar normalmente
+            ControladorGeneral.regresar(event, "Principal", getClass());
+        }
+    }
+
+// Método para verificar si hay cambios sin guardar
+    private boolean hayCambiosSinGuardar() {
+        // Obtener los estados de acreditación originales
+        HashMap<String, Boolean> estadosOriginales = cargarEstadosAcreditacion();
+
+        // Verificar cada evento en la lista actual
+        for (Evento evento : tableView.getItems()) {
+            // Crear la clave única como en el método cargarEstadosAcreditacion
+            String key = evento.getRfc() + "|" + evento.getNombreEvento();
+
+            // Verificar si el estado de acreditación ha cambiado
+            Boolean estadoOriginal = estadosOriginales.get(key);
+            if (estadoOriginal == null || estadoOriginal != evento.isAcreditado()) {
+                return true; // Hay cambios sin guardar
+            }
+        }
+
+        return false; // No hay cambios
     }
 
     public static class Evento {
