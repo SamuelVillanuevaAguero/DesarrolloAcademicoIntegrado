@@ -26,6 +26,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 import utilerias.general.ControladorGeneral;
 import java.util.Optional;
+import javafx.application.Platform;
 
 public class ModificacionDatosController implements Initializable {
 
@@ -64,27 +65,34 @@ public class ModificacionDatosController implements Initializable {
                 || (totalDocentes.getValue() != null && totalDocentes.getValue() != 0)
                 || periodoEscolar.getValue() != null;
         if (hayDatos) {
+            // Crear un cuadro de diálogo de confirmación
             Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
-            confirmacion.setTitle("Confirmación");
-            confirmacion.setHeaderText("¿Deseas guardar los datos?");
-            confirmacion.setContentText("Tienes datos ingresados en los campos. ¿Deseas guardarlos antes de regresar?");
+            confirmacion.setTitle("Archivos sin guardar");
+            confirmacion.setHeaderText("Tiene archivos sin guardar");
+            confirmacion.setContentText("¿Desea guardar los cambios antes de salir?");
 
+            // Añadir botones personalizados
             ButtonType botonGuardar = new ButtonType("Guardar");
-            ButtonType botonNoGuardar = new ButtonType("No Guardar");
+            ButtonType botonSalirSinGuardar = new ButtonType("Salir sin guardar");
             ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
 
-            confirmacion.getButtonTypes().setAll(botonGuardar, botonNoGuardar, botonCancelar);
+            confirmacion.getButtonTypes().setAll(botonGuardar, botonSalirSinGuardar, botonCancelar);
+
+            // Mostrar el diálogo y obtener la respuesta
             Optional<ButtonType> resultado = confirmacion.showAndWait();
 
-            if (resultado.isPresent()) {
-                if (resultado.get() == botonGuardar) {
-                    guardarDatosEnExcel(event);
-                    ControladorGeneral.regresar(event, "Principal", getClass());
-                } else if (resultado.get() == botonNoGuardar) {
-                    ControladorGeneral.regresar(event, "Principal", getClass());
-                }
+            if (resultado.get() == botonGuardar) {
+                // Llamar al método de guardar archivos
+                guardarDatosEnExcel(event);
+                // Después de guardar, regresar a la ventana anterior
+                ControladorGeneral.regresar(event, "Principal", getClass());
+            } else if (resultado.get() == botonSalirSinGuardar) {
+                // Salir sin guardar
+                ControladorGeneral.regresar(event, "Principal", getClass());
             }
+            // Si se selecciona Cancelar, no se hace nada (se queda en la ventana actual)
         } else {
+            // Si no hay archivos sin guardar, simplemente regresar
             ControladorGeneral.regresar(event, "Principal", getClass());
         }
     }
@@ -104,23 +112,22 @@ public class ModificacionDatosController implements Initializable {
     }
 
     public void restablecerCamposValoresIniciales() {
-        // Solo si no hay registros previos
-        if (noHayRegistrosPrevios()) {
-            directorField.clear();
-            coordinadorField.clear();
-            jefeDeptoField.clear();
+        // Modificar para permitir limpiar campos siempre
+        directorField.clear();
+        coordinadorField.clear();
+        jefeDeptoField.clear();
 
-            for (String depto : departamento.getItems()) {
-                docentesPorDepartamento.put(depto, 0);
-            }
-
-            totalDocentes.getValueFactory().setValue(0);
-            año.getValueFactory().setValue(Calendar.getInstance().get(Calendar.YEAR));
-            periodoEscolar.getSelectionModel().clearSelection();
-            departamento.getSelectionModel().clearSelection();
-        } else {
-            mostrarAlerta("Aviso", "No se pueden borrar los datos existentes. Utilice el botón Guardar para actualizar la información.", AlertType.WARNING);
+        for (String depto : departamento.getItems()) {
+            docentesPorDepartamento.put(depto, 0);
         }
+
+        totalDocentes.getValueFactory().setValue(0);
+        año.getValueFactory().setValue(Calendar.getInstance().get(Calendar.YEAR));
+        periodoEscolar.getSelectionModel().clearSelection();
+        departamento.getSelectionModel().clearSelection();
+
+        // Volver a deshabilitar campos
+        deshabilitarCampos();
     }
 
     private boolean noHayRegistrosPrevios() {
@@ -133,7 +140,7 @@ public class ModificacionDatosController implements Initializable {
 
         try (Workbook workbook = new XSSFWorkbook(new FileInputStream(archivo))) {
             Sheet sheet = workbook.getSheet(String.valueOf(año.getValue()));
-            return sheet == null || sheet.getPhysicalNumberOfRows() == 0;
+            return sheet == null || sheet.getPhysicalNumberOfRows() <= 4; // Considerar solo las filas con datos
         } catch (IOException e) {
             return true;
         }
@@ -158,9 +165,6 @@ public class ModificacionDatosController implements Initializable {
                 if (sheet == null) {
                     sheet = workbook.createSheet(String.valueOf(año.getValue()));
                     configurarCabecerasHoja(sheet);
-                } else {
-                    // Cargar datos existentes en la vista
-                    cargarDatosExistentes(sheet);
                 }
             } else {
                 workbook = new XSSFWorkbook();
@@ -170,11 +174,14 @@ public class ModificacionDatosController implements Initializable {
 
             // Actualizar datos en la hoja
             actualizarDatosEnHoja(sheet);
-            
+
             // Guardar archivo
             try (FileOutputStream fileOut = new FileOutputStream(rutaArchivo)) {
                 workbook.write(fileOut);
                 mostrarAlerta("Éxito", "Datos guardados exitosamente", AlertType.INFORMATION);
+
+                // Después de guardar, volver a cargar la información del periodo
+                //cargarInformacionPeriodo(periodoEscolar.getValue());
                 restablecerCamposValoresIniciales();
             }
         } catch (IOException e) {
@@ -190,10 +197,10 @@ public class ModificacionDatosController implements Initializable {
         // Configurar rangos de filas según el periodo
         int filaInicial, filaTotal;
         if (periodoSeleccionado.equals("Enero-Julio")) {
-            filaInicial = 4;
+            filaInicial = 5;
             filaTotal = 12;
         } else { // Agosto-Diciembre
-            filaInicial = 13;
+            filaInicial = 14;
             filaTotal = 21;
         }
 
@@ -245,15 +252,7 @@ public class ModificacionDatosController implements Initializable {
         // Obtener el periodo seleccionado
         String periodoSeleccionado = periodoEscolar.getValue();
 
-        // Configurar rangos de filas según el periodo
-        int filaInicial;
-        if (periodoSeleccionado.equals("Enero-Julio")) {
-            filaInicial = 4;
-        } else { // Agosto-Diciembre
-            filaInicial = 13;
-        }
-
-        // Actualizar datos generales
+        // Actualizar datos generales (filas 0-2) - estas son comunes
         Row directorRow = sheet.getRow(0);
         if (directorRow.getCell(1) == null) {
             directorRow.createCell(1);
@@ -272,50 +271,61 @@ public class ModificacionDatosController implements Initializable {
         }
         coordinadorRow.getCell(1).setCellValue(coordinadorField.getText());
 
-        // Actualizar periodo
-        Row periodoRow = sheet.getRow(3);
-        if (periodoRow.getCell(1) == null) {
-            periodoRow.createCell(1);
+        // Configurar rangos según periodo
+        int filaInicial, filaTotal, filaSuma;
+        if (periodoSeleccionado.equals("Enero-Julio")) {
+            filaInicial = 4;
+            filaTotal = 12;
+            filaSuma = 3;
+        } else { // Agosto-Diciembre
+            filaInicial = 13;
+            filaTotal = 21;
+            filaSuma = 12;
         }
-        periodoRow.getCell(1).setCellValue(periodoSeleccionado);
 
-        // Calcular suma total de docentes
-        int totalDocentes = 0;
-        for (String depto : departamento.getItems()) {
-            totalDocentes += docentesPorDepartamento.get(depto);
-        }
-
-        // Crear o actualizar la celda de suma total de docentes
-        Row sumaDocentesRow = sheet.getRow(filaInicial - 1);
-        if (sumaDocentesRow == null) {
-            sumaDocentesRow = sheet.createRow(filaInicial - 1);
-        }
-        if (sumaDocentesRow.getCell(1) == null) {
-            sumaDocentesRow.createCell(1);
-        }
-        sumaDocentesRow.getCell(1).setCellValue(totalDocentes);
-
-        // Actualizar datos de departamentos
-        for (int i = 0; i < departamento.getItems().size(); i++) {
+        // Calcular suma de departamentos para el periodo seleccionado
+        int sumaDocentes = 0;
+        for (int i = 0; i < 8; i++) {
             String depto = departamento.getItems().get(i);
+            int valorDocentes = docentesPorDepartamento.get(depto);
             Row row = sheet.getRow(filaInicial + i);
 
             if (row.getCell(1) == null) {
                 row.createCell(1);
             }
+            row.getCell(1).setCellValue(valorDocentes);
 
-            row.getCell(1).setCellValue(docentesPorDepartamento.get(depto));
+            sumaDocentes += valorDocentes;
         }
+
+        // Actualizar suma en la fila correspondiente
+        Row sumaRow = sheet.getRow(filaSuma);
+        if (sumaRow.getCell(1) == null) {
+            sumaRow.createCell(1);
+        }
+        sumaRow.getCell(1).setCellValue(sumaDocentes);
     }
 
     private void configurarCabecerasHoja(Sheet sheet) {
         // Establecer cabeceras fijas en las primeras filas
-        sheet.createRow(0).createCell(0).setCellValue("Director:");
-        sheet.createRow(1).createCell(0).setCellValue("Jefe de Departamento:");
-        sheet.createRow(2).createCell(0).setCellValue("Coordinador:");
-        sheet.createRow(3).createCell(0).setCellValue("Periodo:");
+        Row directorRow = sheet.createRow(0);
+        directorRow.createCell(0).setCellValue("Director:");
+        directorRow.createCell(1).setCellValue(""); // Celda para el nombre
 
-        // Crear filas para departamentos
+        Row jefeDeptoRow = sheet.createRow(1);
+        jefeDeptoRow.createCell(0).setCellValue("Jefe de Departamento:");
+        jefeDeptoRow.createCell(1).setCellValue(""); // Celda para el nombre
+
+        Row coordinadorRow = sheet.createRow(2);
+        coordinadorRow.createCell(0).setCellValue("Coordinador:");
+        coordinadorRow.createCell(1).setCellValue(""); // Celda para el nombre
+
+        // Crear fila para periodo Enero-Julio con suma
+        Row periodoEneroJulioRow = sheet.createRow(3);
+        periodoEneroJulioRow.createCell(0).setCellValue("Periodo Enero-Julio:");
+        periodoEneroJulioRow.createCell(1).setCellValue(0); // Suma inicial en 0
+
+        // Crear filas para departamentos Enero-Julio
         String[] departamentos = {
             "CIENCIAS BASICAS",
             "CIENCIAS ECONOMICO ADMINISTRATIVO",
@@ -327,16 +337,22 @@ public class ModificacionDatosController implements Initializable {
             "POSGRADO"
         };
 
-        // Para Enero-Julio
         for (int i = 0; i < departamentos.length; i++) {
-            Row row = sheet.getRow(i + 4) != null ? sheet.getRow(i + 4) : sheet.createRow(i + 4);
+            Row row = sheet.createRow(i + 4);
             row.createCell(0).setCellValue(departamentos[i]);
+            row.createCell(1).setCellValue(0); // Valor inicial en 0
         }
 
-        // Para Agosto-Diciembre
+        // Crear fila para periodo Agosto-Diciembre con suma
+        Row periodoAgostoDiciembreRow = sheet.createRow(12);
+        periodoAgostoDiciembreRow.createCell(0).setCellValue("Periodo Agosto-Diciembre:");
+        periodoAgostoDiciembreRow.createCell(1).setCellValue(0); // Suma inicial en 0
+
+        // Crear filas para departamentos Agosto-Diciembre
         for (int i = 0; i < departamentos.length; i++) {
-            Row row = sheet.getRow(i + 13) != null ? sheet.getRow(i + 13) : sheet.createRow(i + 13);
+            Row row = sheet.createRow(i + 13);
             row.createCell(0).setCellValue(departamentos[i]);
+            row.createCell(1).setCellValue(0); // Valor inicial en 0
         }
     }
 
@@ -405,8 +421,155 @@ public class ModificacionDatosController implements Initializable {
         return true;
     }
 
+    private void verificarArchivoPorAño() {
+        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\informacion_modificable\\info.xlsx";
+        File archivo = new File(rutaArchivo);
+
+        if (!archivo.exists()) {
+            habilitarCampos();
+            periodoEscolar.setDisable(false);
+            return;
+        }
+
+        try (Workbook workbook = new XSSFWorkbook(new FileInputStream(archivo))) {
+            Sheet sheet = workbook.getSheet(String.valueOf(año.getValue()));
+
+            if (sheet == null) {
+                habilitarCampos();
+                periodoEscolar.setDisable(false);
+            } else {
+                periodoEscolar.setDisable(false);
+            }
+        } catch (IOException e) {
+            mostrarAlerta("Error", "No se pudo acceder al archivo: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
+    }
+
+    private void deshabilitarCampos() {
+        directorField.setDisable(true);
+        coordinadorField.setDisable(true);
+        jefeDeptoField.setDisable(true);
+        totalDocentes.setDisable(true);
+        departamento.setDisable(true);
+        botonGuardar.setDisable(true);
+        botonLimpiar.setDisable(true);
+    }
+
+    private void habilitarCampos() {
+        directorField.setDisable(false);
+        coordinadorField.setDisable(false);
+        jefeDeptoField.setDisable(false);
+        totalDocentes.setDisable(false);
+        departamento.setDisable(false);
+        botonGuardar.setDisable(false);
+        botonLimpiar.setDisable(false);
+    }
+
+    private void cargarInformacionPeriodo(String periodoSeleccionado) {
+        String rutaArchivo = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\informacion_modificable\\info.xlsx";
+        File archivo = new File(rutaArchivo);
+
+        if (!archivo.exists()) {
+            habilitarCampos();
+            return;
+        }
+
+        try (Workbook workbook = new XSSFWorkbook(new FileInputStream(archivo))) {
+            Sheet sheet = workbook.getSheet(String.valueOf(año.getValue()));
+
+            if (sheet == null) {
+                habilitarCampos();
+                return;
+            }
+
+            // Cargar datos generales
+            Row directorRow = sheet.getRow(0);
+            Row jefeDeptoRow = sheet.getRow(1);
+            Row coordinadorRow = sheet.getRow(2);
+
+            if (directorRow != null && directorRow.getCell(1) != null) {
+                directorField.setText(directorRow.getCell(1).getStringCellValue());
+            }
+
+            if (jefeDeptoRow != null && jefeDeptoRow.getCell(1) != null) {
+                jefeDeptoField.setText(jefeDeptoRow.getCell(1).getStringCellValue());
+            }
+
+            if (coordinadorRow != null && coordinadorRow.getCell(1) != null) {
+                coordinadorField.setText(coordinadorRow.getCell(1).getStringCellValue());
+            }
+
+            // Configurar rangos según periodo
+            int filaInicial, filaFinal;
+            if (periodoSeleccionado.equals("Enero-Julio")) {
+                filaInicial = 4;
+                filaFinal = 12;
+            } else {
+                filaInicial = 13;
+                filaFinal = 21;
+            }
+
+            // Cargar totales por departamento
+            int totalDocentesPeriodo = 0;
+            docentesPorDepartamento.clear();
+
+            // Find the first department with a non-zero value
+            String primerDepartamentoConValor = null;
+            for (int i = 0; i < departamento.getItems().size(); i++) {
+                String depto = departamento.getItems().get(i);
+                Row row = sheet.getRow(filaInicial + i);
+
+                if (row != null && row.getCell(1) != null) {
+                    int docentes = (int) row.getCell(1).getNumericCellValue();
+                    docentesPorDepartamento.put(depto, docentes);
+                    totalDocentesPeriodo += docentes;
+
+                    // Store the first department with a non-zero value
+                    if (primerDepartamentoConValor == null && docentes > 0) {
+                        primerDepartamentoConValor = depto;
+                    }
+                } else {
+                    docentesPorDepartamento.put(depto, 0);
+                }
+            }
+
+            totalDocentes.getValueFactory().setValue(totalDocentesPeriodo);
+
+            // If a department with value is found, select it
+            if (primerDepartamentoConValor != null) {
+                departamento.setValue(primerDepartamentoConValor);
+                totalDocentes.getValueFactory().setValue(docentesPorDepartamento.get(primerDepartamentoConValor));
+            }
+
+            // Habilitar campos
+            habilitarCampos();
+
+        } catch (IOException e) {
+            mostrarAlerta("Error", "No se pudo cargar la información: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
+    }
+
     @Override
     public void initialize(URL url, ResourceBundle rb) {
+        // Inicializar estados iniciales
+        deshabilitarCampos();
+
+        // Establecer foco inicial en año
+        Platform.runLater(() -> año.requestFocus());
+
+        // Listener para quitar foco de año
+        año.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                verificarArchivoPorAño();
+            }
+        });
+
+        // Listener para selección de periodo
+        periodoEscolar.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                cargarInformacionPeriodo(newValue);
+            }
+        });
 
         departamento.getItems().addAll(
                 "CIENCIAS BASICAS",
@@ -473,7 +636,7 @@ public class ModificacionDatosController implements Initializable {
         });
 
         // El botón de limpiar no está disponible cuando hay registros previos
-        botonLimpiar.setDisable(!noHayRegistrosPrevios());
+        //botonLimpiar.setDisable(!noHayRegistrosPrevios());
         botonLimpiar.setOnMouseClicked(event -> restablecerCamposValoresIniciales());
     }
 }
