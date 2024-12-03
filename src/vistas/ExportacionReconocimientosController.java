@@ -102,7 +102,7 @@ public class ExportacionReconocimientosController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-       
+
         // Configuración inicial de eventos de los botones de la barra superior
         buttonRedireccionar.setOnMouseClicked(event -> {
             try {
@@ -129,7 +129,7 @@ public class ExportacionReconocimientosController implements Initializable {
                 Logger.getLogger(ExportacionReconocimientosController.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
-                
+
         // Configurar opciones en ComboBox de horas y formatos
         for (int i = 20; i <= 50; i++) {
             txtHoras.getItems().add(String.valueOf(i));
@@ -152,36 +152,48 @@ public class ExportacionReconocimientosController implements Initializable {
         txtcodigodelcurso.setVisible(false); // Oculta el TextField
         txtAreaNombreCurso.setVisible(false);
 
-        // Evento para checknombre
-        checkNombres.setOnAction(event -> {
-            String seleccion = checkNombres.getValue();
-            if (seleccion != null) {
-                txtAreaNombreCurso.setText(seleccion); // Coloca la selección en el TextField
-            } else {
-                txtAreaNombreCurso.clear(); // Limpia el TextField si no hay selección
+        // Crear un ToggleGroup y asignarlo a los RadioButton
+        ToggleGroup toggleGroup = new ToggleGroup();
+        radiobotonCodigo.setToggleGroup(toggleGroup);
+        radiobotonNombre.setToggleGroup(toggleGroup);
+
+        checkCodigos.setOnAction(event -> {
+            String seleccion = checkCodigos.getValue();
+            if (seleccion != null && !seleccion.trim().isEmpty()) {
+                txtcodigodelcurso.setText(seleccion);
+                txtcodigodelcurso.setVisible(true);
+                checkCodigos.setVisible(false);
+                txtAreaNombreCurso.clear(); // Limpia el campo de nombres para evitar interferencias
             }
         });
 
-        checkCodigos.setOnAction(event -> {
-            String seleccion = checkCodigos.getValue(); // Obtiene el valor seleccionado
-            if (seleccion != null) {
-                txtcodigodelcurso.setText(seleccion); // Coloca la selección en el TextField
-            } else {
-                txtcodigodelcurso.clear(); // Limpia el TextField si no hay selección
+        checkNombres.setOnAction(event -> {
+            String seleccion = checkNombres.getValue();
+            if (seleccion != null && !seleccion.trim().isEmpty()) {
+                txtAreaNombreCurso.setText(seleccion);
+                txtAreaNombreCurso.setVisible(true);
+                checkNombres.setVisible(false);
+                txtcodigodelcurso.clear(); // Limpia el campo de códigos para evitar interferencias
             }
-        });        
-       
+        });
+
         // Asociar los eventos de los RadioButtons
         radiobotonCodigo.setOnAction(event -> {
             try {
-                manejarRadioButton();
+                manejarRadioButtonCodigo();
+                checkCodigos.setVisible(true);
+                txtcodigodelcurso.setVisible(false);
+                txtAreaNombreCurso.clear();
             } catch (IOException ex) {
                 Logger.getLogger(ExportacionReconocimientosController.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
         radiobotonNombre.setOnAction(event -> {
             try {
-                manejarRadioButton();
+                manejarRadioButtonNombre();
+                checkNombres.setVisible(true);
+                txtAreaNombreCurso.setVisible(false);
+                txtcodigodelcurso.clear();
             } catch (IOException ex) {
                 Logger.getLogger(ExportacionReconocimientosController.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -190,8 +202,8 @@ public class ExportacionReconocimientosController implements Initializable {
         // Evento para checkCodigos (cuando se selecciona un ítem)
         checkCodigos.setOnAction(event -> {
             if (checkCodigos.getValue() != null) {
-                 // Asignar el valor seleccionado al campo de texto
-        txtcodigodelcurso.setText(checkCodigos.getValue());
+                // Asignar el valor seleccionado al campo de texto
+                txtcodigodelcurso.setText(checkCodigos.getValue());
                 // Acción cuando se ha seleccionado un valor en el ComboBox
                 checkCodigos.setVisible(false);
                 txtcodigodelcurso.setVisible(true);
@@ -202,8 +214,8 @@ public class ExportacionReconocimientosController implements Initializable {
         checkNombres.setOnAction(event -> {
             if (checkNombres.getValue() != null) {
                 // Asignar el valor seleccionado al campo de texto
-        txtAreaNombreCurso.setText(checkNombres.getValue());
-        // Acción cuando se ha seleccionado un valor en el ComboBox
+                txtAreaNombreCurso.setText(checkNombres.getValue());
+                // Acción cuando se ha seleccionado un valor en el ComboBox
                 checkNombres.setVisible(false);  // Ocultar el CheckBox de nombres cuando algo es seleccionado
                 txtAreaNombreCurso.setVisible(true);
             }
@@ -211,89 +223,96 @@ public class ExportacionReconocimientosController implements Initializable {
 
     }
 
-    private void manejarRadioButton() throws IOException {
-        // Verificar si se seleccionó el radiobotonCodigo
-        if (radiobotonCodigo.isSelected()) {
-            // Desmarcar el otro RadioButton (radiobotonNombre)
-            radiobotonNombre.setSelected(false);
-            checkCodigos.setDisable(false);
-            checkNombres.setDisable(true);
-            
-            // ocultar combo y habilitar textfield Nombre
-            checkNombres.setVisible(false);
-            txtAreaNombreCurso.setVisible(true);
-            // Cargar códigos en el ComboBox
-            cargarDatosComboBox(txtcodigodelcurso.getText());
-        } // Verificar si se seleccionó el radiobotonNombre
-        else if (radiobotonNombre.isSelected()) {
-            // Desmarcar el otro RadioButton (radiobotonCodigo)
-            radiobotonCodigo.setSelected(false);
-            checkNombres.setDisable(false);
-            checkCodigos.setDisable(true);
-            
-             // ocultar combo y habilitar textfield codigo
-            checkCodigos.setVisible(false);
-            txtcodigodelcurso.setVisible(true);
-            // Cargar códigos en el ComboBox
-            cargarDatosComboBox(txtAreaNombreCurso.getText());
-        } else {
-            checkCodigos.setDisable(true);
-            checkNombres.setDisable(true);
-        }
+    private void manejarRadioButtonCodigo() throws IOException {
+        checkCodigos.setDisable(false);
+        checkNombres.setDisable(true);
+
+        checkNombres.setVisible(false);
+        txtAreaNombreCurso.setVisible(true);
+
+        // Limpiar campos y ComboBox
+        txtcodigodelcurso.clear();
+        checkCodigos.getItems().clear();
+        txtAreaNombreCurso.clear();
+        checkNombres.getItems().clear();
+        txtNombreInstructor.clear();
+        txtAreaCompetencias.clear();
+        txtFechaCurso.clear();
+
+        // Cargar códigos en el ComboBox
+        cargarDatosComboBox(txtcodigodelcurso.getText());
+    }
+
+    private void manejarRadioButtonNombre() throws IOException {
+        checkNombres.setDisable(false);
+        checkCodigos.setDisable(true);
+
+        checkCodigos.setVisible(false);
+        txtcodigodelcurso.setVisible(true);
+
+        // Limpiar campos y ComboBox
+        txtAreaNombreCurso.clear();
+        checkNombres.getItems().clear();
+        txtcodigodelcurso.clear();
+        txtNombreInstructor.clear();
+        txtAreaCompetencias.clear();
+        txtFechaCurso.clear();
+
+        // Cargar nombres en el ComboBox
+        cargarDatosComboBox(txtAreaNombreCurso.getText());
     }
 
     @FXML
     private void buscarCurso(ActionEvent event) {
-         txtFormatos.setDisable(false); // Habilitar campo formatos
-    txtcodigodelcurso.setDisable(true); // Deshabilitar el campo de código para evitar cambios manuales
-    ExcelReader excelReader = new ExcelReader(); // Instancia de ExcelReader para manejar el archivo
+        txtFormatos.setDisable(false); // Habilitar campo formatos
+        txtcodigodelcurso.setDisable(true); // Deshabilitar el campo de código para evitar cambios manuales
+        ExcelReader excelReader = new ExcelReader(); // Instancia de ExcelReader para manejar el archivo
 
-    try {
-        String nombreCurso = null;
-        String codigoCurso = null;
+        try {
+            String nombreCurso = null;
+            String codigoCurso = null;
 
-        // Verificar si se seleccionó algo en checkCodigos (buscar por código)
-        if (checkCodigos.getValue() != null && !checkCodigos.getValue().isEmpty()) {
-            codigoCurso = checkCodigos.getValue();
-            nombreCurso = excelReader.buscarCurso(codigoCurso); // Buscar nombre por código
-        }
-        // Verificar si se seleccionó algo en checkNombres (buscar por nombre)
-        else if (checkNombres.getValue() != null && !checkNombres.getValue().isEmpty()) {
-            nombreCurso = checkNombres.getValue(); // Obtener el nombre del curso seleccionado
-            // Buscar el código correspondiente al nombre
-            codigoCurso = excelReader.obtenerCodigoPorNombre(nombreCurso); // Obtener el código del curso por nombre
-        }
-
-        if (nombreCurso != null && !nombreCurso.isEmpty()) {
-            // Si se encontró el curso, llenar los campos correspondientes
-            txtAreaNombreCurso.setText(nombreCurso);
-            txtcodigodelcurso.setText(codigoCurso); // Llenar el campo con el código
-
-            // Buscar los detalles del curso (fecha, horas, instructor, competencias)
-            Map<String, String> datosCurso = excelReader.buscarDetallesCurso(nombreCurso);
-            if (datosCurso != null) {
-                // Llenar los campos con los datos encontrados
-                txtFechaCurso.setText(datosCurso.get("fechaCurso"));
-                txtHoras.setValue(datosCurso.get("horasCurso"));
-                txtNombreInstructor.setText(datosCurso.get("nombreInstructor"));
-                txtAreaCompetencias.setText(datosCurso.get("competencias"));
-            } else {
-                // Si no se encuentran los detalles, mostrar un mensaje informativo
-                Alert alert = new Alert(Alert.AlertType.INFORMATION, "No se encontraron detalles adicionales para el curso.");
-                alert.showAndWait();
+            // Verificar si se seleccionó algo en checkCodigos (buscar por código)
+            if (checkCodigos.getValue() != null && !checkCodigos.getValue().isEmpty()) {
+                codigoCurso = checkCodigos.getValue();
+                nombreCurso = excelReader.buscarCurso(codigoCurso); // Buscar nombre por código
+            } // Verificar si se seleccionó algo en checkNombres (buscar por nombre)
+            else if (checkNombres.getValue() != null && !checkNombres.getValue().isEmpty()) {
+                nombreCurso = checkNombres.getValue(); // Obtener el nombre del curso seleccionado
+                // Buscar el código correspondiente al nombre
+                codigoCurso = excelReader.obtenerCodigoPorNombre(nombreCurso); // Obtener el código del curso por nombre
             }
-        } else {
-            // Si no se encuentra el curso, mostrar un mensaje informativo
-            Alert alert = new Alert(Alert.AlertType.INFORMATION, "No se encontró ningún curso con ese código o nombre.");
+
+            if (nombreCurso != null && !nombreCurso.isEmpty()) {
+                // Si se encontró el curso, llenar los campos correspondientes
+                txtAreaNombreCurso.setText(nombreCurso);
+                txtcodigodelcurso.setText(codigoCurso); // Llenar el campo con el código
+
+                // Buscar los detalles del curso (fecha, horas, instructor, competencias)
+                Map<String, String> datosCurso = excelReader.buscarDetallesCurso(nombreCurso);
+                if (datosCurso != null) {
+                    // Llenar los campos con los datos encontrados
+                    txtFechaCurso.setText(datosCurso.get("fechaCurso"));
+                    txtHoras.setValue(datosCurso.get("horasCurso"));
+                    txtNombreInstructor.setText(datosCurso.get("nombreInstructor"));
+                    txtAreaCompetencias.setText(datosCurso.get("competencias"));
+                } else {
+                    // Si no se encuentran los detalles, mostrar un mensaje informativo
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION, "No se encontraron detalles adicionales para el curso.");
+                    alert.showAndWait();
+                }
+            } else {
+                // Si no se encuentra el curso, mostrar un mensaje informativo
+                Alert alert = new Alert(Alert.AlertType.INFORMATION, "No se encontró ningún curso con ese código o nombre.");
+                alert.showAndWait();
+                txtcodigodelcurso.setDisable(false);
+            }
+        } catch (IOException e) {
+            // Manejo de excepciones en caso de error con el archivo
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Error al leer el archivo de Excel: " + e.getMessage());
             alert.showAndWait();
-            txtcodigodelcurso.setDisable(false);
+            e.printStackTrace();
         }
-    } catch (IOException e) {
-        // Manejo de excepciones en caso de error con el archivo
-        Alert alert = new Alert(Alert.AlertType.ERROR, "Error al leer el archivo de Excel: " + e.getMessage());
-        alert.showAndWait();
-        e.printStackTrace();
-    }
     }
 
     @FXML
@@ -355,7 +374,7 @@ public class ExportacionReconocimientosController implements Initializable {
     @FXML
     private void exportarReconocimientos(ActionEvent event) throws IOException {
         ExcelReader excelReader = new ExcelReader();
-        
+
         // Obtener el curso seleccionado desde la interfaz
         String nombreCurso = txtAreaNombreCurso.getText(); // Asumiendo que aquí está el nombre del curso seleccionado
 
@@ -380,20 +399,20 @@ public class ExportacionReconocimientosController implements Initializable {
         Calendar calendario = Calendar.getInstance();
         int año = calendario.get(Calendar.YEAR);
         int periodo = calendario.get(Calendar.MONTH) < 7 ? 1 : 2;
-        
-        String rutaPlantilla = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\"+año+"\\"+periodo+"-"+año+"\\formato_de_hojas_membretadas_para_reconocimientos\\";
-        
+
+        String rutaPlantilla = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\" + año + "\\" + periodo + "-" + año + "\\formato_de_hojas_membretadas_para_reconocimientos\\";
+
         int versionPlantilla = obtenerUltimaSemana(rutaPlantilla, "formato\\_\\(Version_\\d+\\)\\.docx", "Version", "docx");
-        rutaPlantilla += "formato_(Version_"+versionPlantilla+").docx";
-        
-        String directorioBase = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_exportados\\"+año+"\\"+periodo+"-"+año+"\\reconocimientos\\";        
+        rutaPlantilla += "formato_(Version_" + versionPlantilla + ").docx";
+
+        String directorioBase = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_exportados\\" + año + "\\" + periodo + "-" + año + "\\reconocimientos\\";
 
         // Crear subdirectorio con el nombre del curso
-    String directorioCurso = directorioBase + nombreCurso.trim().replace(" ", "_") + "\\";
-    File dirCurso = new File(directorioCurso);
-    if (!dirCurso.exists()) {
-        dirCurso.mkdirs();
-    }
+        String directorioCurso = directorioBase + nombreCurso.trim().replace(" ", "_") + "\\";
+        File dirCurso = new File(directorioCurso);
+        if (!dirCurso.exists()) {
+            dirCurso.mkdirs();
+        }
         String horasCurso = txtHoras.getValue(); // Asumiendo que seleccionas las horas desde un ComboBox
 
         // Verificar el formato seleccionado
@@ -411,18 +430,18 @@ public class ExportacionReconocimientosController implements Initializable {
         for (String nombreDocente : nombresDocentesAcreditados) {
             try {
                 if (formatoSeleccionado.equals("PDF")) {
-                // Generar PDF
-              
-                totalExportados++;
-            } else if (formatoSeleccionado.equals("Word")) {
-                // Generar documento Word
-                String archivoWordGenerado = generarDocumentoWord(rutaPlantilla, directorioCurso, nombreDocente, horasCurso);
-                totalExportados++;
-            } else if (formatoSeleccionado.equals("Ambos")) {
-                // Generar tanto PDF como Word
+                    // Generar PDF
 
-                String archivoWordGenerado = generarDocumentoWord(rutaPlantilla, directorioCurso, nombreDocente, horasCurso);
-                totalExportados++;
+                    totalExportados++;
+                } else if (formatoSeleccionado.equals("Word")) {
+                    // Generar documento Word
+                    String archivoWordGenerado = generarDocumentoWord(rutaPlantilla, directorioCurso, nombreDocente, horasCurso);
+                    totalExportados++;
+                } else if (formatoSeleccionado.equals("Ambos")) {
+                    // Generar tanto PDF como Word
+
+                    String archivoWordGenerado = generarDocumentoWord(rutaPlantilla, directorioCurso, nombreDocente, horasCurso);
+                    totalExportados++;
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -435,8 +454,8 @@ public class ExportacionReconocimientosController implements Initializable {
         Alert exito = new Alert(Alert.AlertType.INFORMATION, "¡Exportación completada!\n"
                 + "Reconocimientos generados exitosamente: " + totalExportados);
         exito.showAndWait();
+        limpiarCampos(event);
     }
-
 
     @FXML
     private void guardarDatos(ActionEvent event) {
@@ -498,6 +517,10 @@ public class ExportacionReconocimientosController implements Initializable {
         txtHoras.getSelectionModel().clearSelection();
         txtFormatos.getSelectionModel().clearSelection();
 
+        //
+        checkCodigos.setDisable(true);
+        checkNombres.setDisable(true);
+
         // Deshabilitar campos al inicio
         txtAreaNombreCurso.setDisable(true);
         txtFechaCurso.setDisable(true);
@@ -511,15 +534,15 @@ public class ExportacionReconocimientosController implements Initializable {
         // limpiar
         checkCodigos.getSelectionModel().clearSelection();
         checkNombres.getSelectionModel().clearSelection();
-        
+
         // activar combo
         checkCodigos.setVisible(true);
         checkNombres.setVisible(true);
-        
+
         // ocultar textfields
         txtcodigodelcurso.setVisible(false);
         txtAreaNombreCurso.setVisible(false);
-        
+
         // Limpiar radioButtones
         radiobotonCodigo.setSelected(false);
         radiobotonNombre.setSelected(false);
@@ -533,7 +556,7 @@ public class ExportacionReconocimientosController implements Initializable {
     @FXML
     private void seleccionNombre(ActionEvent event) {
     }
-    
+
     private String obtenerDirector(String ruta, int año, int periodo) {
         try {
             // Abrir el archivo Excel
@@ -605,7 +628,7 @@ public class ExportacionReconocimientosController implements Initializable {
             }
         }
     }
-    
+
     private String generarDocumentoPDF(String rutaPlantilla, String directorioSalida, String nombreDocente, String horasCurso) throws IOException {
         FileInputStream fis = null;
         FileOutputStream fos = null;
@@ -622,9 +645,8 @@ public class ExportacionReconocimientosController implements Initializable {
             // Guardar el archivo generado
             String rutaArchivoGenerado = directorioSalida + "Reconocimiento_" + nombreDocente + ".docx";
             fos = new FileOutputStream(rutaArchivoGenerado);
-            
-            //
 
+            //
             return rutaArchivoGenerado; // Devolver la ruta del archivo generado
         } finally {
             // Cerrar recursos manualmente
@@ -636,8 +658,7 @@ public class ExportacionReconocimientosController implements Initializable {
             }
         }
     }
-    
-    
+
     // Procesa todos los párrafos en un documento
     private void procesarParrafos(XWPFDocument documento, String nombreDocente, String horasCurso) {
         // Obtén los valores adicionales de los TextFields y TextAreas
@@ -653,33 +674,30 @@ public class ExportacionReconocimientosController implements Initializable {
             reemplazarMarcadores(parrafo, nombreDocente, horasCurso, codigoCurso, nombreCurso, fechaCurso, nombreDirector);
         }
     }
-
+    
     private void reemplazarMarcadores(XWPFParagraph parrafo, String nombreDocente, String horasCurso, String codigoCurso, String nombreCurso, String fechaCurso, String nombreDirector) {
-   // Convierte todos los valores a mayúsculas
+    // Convierte los valores a mayúsculas
     nombreDocente = nombreDocente.toUpperCase();
-    horasCurso = horasCurso.toUpperCase();
+    nombreDirector = nombreDirector.toUpperCase();
+    horasCurso = ("CON UNA DURACIÓN DE " + horasCurso).toUpperCase() + " HORAS";
     codigoCurso = codigoCurso.toUpperCase();
     nombreCurso = nombreCurso.toUpperCase();
-    fechaCurso = fechaCurso.toUpperCase();
-    
-    // Agrega "REALIZADO " antes de la fecha y luego la convierte en mayúsculas
     fechaCurso = ("REALIZADO " + fechaCurso).toUpperCase();
-    horasCurso = ("CON UNA DURACION DE  " + horasCurso).toUpperCase()+" HORAS";
 
-    // Obtiene el texto completo del párrafo
+    // Obtén el texto completo del párrafo
     String textoCompleto = parrafo.getText();
 
     // Si contiene algún marcador, realiza el reemplazo
-    if (textoCompleto.contains("{nombreDocente}") || textoCompleto.contains("{horasCurso}") 
-            || textoCompleto.contains("{codigoCurso}") || textoCompleto.contains("{nombreCurso}") || textoCompleto.contains("{fechaCurso}")
-            || textoCompleto.contains("{nombreDirector}")) {
+    if (textoCompleto.contains("{nombreDocente}") || textoCompleto.contains("{horasCurso}") ||
+        textoCompleto.contains("{codigoCurso}") || textoCompleto.contains("{nombreCurso}") || 
+        textoCompleto.contains("{fechaCurso}") || textoCompleto.contains("{nombreDirector}")) {
 
-        // Elimina todos los *runs* existentes
+        // Unificar texto: primero elimina todos los runs
         for (int i = parrafo.getRuns().size() - 1; i >= 0; i--) {
             parrafo.removeRun(i);
         }
 
-        // Realiza los reemplazos en el texto
+        // Reemplaza todos los marcadores con su valor correspondiente
         textoCompleto = textoCompleto
                 .replace("{nombreDocente}", nombreDocente)
                 .replace("{horasCurso}", horasCurso)
@@ -688,54 +706,60 @@ public class ExportacionReconocimientosController implements Initializable {
                 .replace("{fechaCurso}", fechaCurso)
                 .replace("{nombreDirector}", nombreDirector);
 
-        // Divide el texto en fragmentos
-        String[] fragmentos = textoCompleto.split("(?<=\\})|(?=\\{)");
+        // Crear un solo run para todo el texto (con formato base uniforme)
+        XWPFRun runTexto = parrafo.createRun();
+        runTexto.setText(textoCompleto);
+        runTexto.setFontFamily("Montserrat"); // Forzar la fuente en todo el texto
+        runTexto.setFontSize(11);             // Tamaño base uniforme
+        runTexto.setColor("595959");          // Color base uniforme
+        runTexto.setBold(false);              // Sin negrita por defecto
 
-        // Reconstruye el párrafo con estilo para cada fragmento
-        for (String fragmento : fragmentos) {
-            if (fragmento.equals(nombreDocente)) {
-                crearRunConEstilo(parrafo, fragmento, "Montserrat Extra Bold", 24, "595959", true, false);
-            } else if (fragmento.equals(horasCurso)) {
-                crearRunConEstilo(parrafo, fragmento, "Montserrat Extra Bold", 11, "595959", false, false);
-            } else if (fragmento.equals(codigoCurso)) {
-                crearRunConEstilo(parrafo, fragmento, "Montserrat", 11, "595959", false, false);
-            } else if (fragmento.equals(nombreCurso)) {
-                crearRunConEstilo(parrafo, fragmento, "Montserrat", 18, "595959", true, false);
-            } else if (fragmento.equals(fechaCurso)) {
-                crearRunConEstilo(parrafo, fragmento, "Montserrat", 11, "595959", false, false);
-            } else if (fragmento.equals(nombreDirector)){
-                crearRunConEstilo(parrafo, fragmento, "Montserrat Extra Bold", 12, "595959", true, false);
-            } else {
-                // Para texto normal, usa un estilo predeterminado
-                crearRunConEstilo(parrafo, fragmento, "Montserrat", 11, "595959", false, false);
-            }
+        // Aplicar formato específico a marcadores clave
+        aplicarEstilo(parrafo, nombreCurso, "Montserrat", 18, "595959", true);
+        aplicarEstilo(parrafo, nombreDirector, "Montserrat", 12, "595959", true);
+        aplicarEstilo(parrafo, nombreDocente, "Montserrat", 24, "595959", true);
+    }
+}
+
+private void aplicarEstilo(XWPFParagraph parrafo, String texto, String fuente, int tamanio, String color, boolean negrita) {
+    for (XWPFRun run : parrafo.getRuns()) {
+        String textoRun = run.text();
+        if (textoRun != null && textoRun.contains(texto)) {
+            // Unificar el texto dentro del run para evitar divisiones
+            String nuevoTexto = textoRun.replace(texto, texto);
+            run.setText(nuevoTexto, 0); // Actualiza todo el texto del run
+
+            // Configurar estilo específico para este texto
+            run.setFontFamily(fuente);  // Forzar siempre la fuente
+            run.setFontSize(tamanio);
+            run.setBold(negrita);
+            run.setColor(color);
         }
     }
-    }
+}
 
-    // Método para crear un Run con diseño específico
-    private void crearRunConEstilo(XWPFParagraph parrafo, String texto, String fuente, int tamanio, String color, boolean negrita, boolean italica) {
-        XWPFRun run = parrafo.createRun();
-        run.setText(texto);
-        run.setFontFamily(fuente);
-        run.setFontSize(tamanio);
-        run.setColor(color);
-        run.setBold(negrita);
-        run.setItalic(italica);
-    }
-    
+
     private void cargarDatosComboBox(String curso) throws IOException {
         ExcelReader excelReader = new ExcelReader();
+
         if (radiobotonCodigo.isSelected()) {
-            // Cargar códigos de cursos en el ComboBox
-            List<String> codigosCursos = excelReader.obtenerCodigosDeCursos(); // Método que necesitas implementar
-            checkCodigos.getItems().clear();
-            checkCodigos.getItems().addAll(codigosCursos);
-        } else if (radiobotonNombre.isSelected()) {
-            // Cargar nombres de cursos en el ComboBox
-            List<String> nombresCursos = excelReader.obtenerNombresDeCursos(); // Método que necesitas implementar
+            // Limpiar nombres para evitar conflictos
+            txtAreaNombreCurso.clear();
             checkNombres.getItems().clear();
-            checkNombres.getItems().addAll(nombresCursos);
+
+            // Cargar códigos de cursos
+            List<String> codigosCursos = excelReader.obtenerCodigosDeCursos(); // Método implementado en ExcelReader
+            checkCodigos.getItems().clear(); // Limpia ComboBox
+            checkCodigos.getItems().addAll(codigosCursos); // Agrega los nuevos datos
+        } else if (radiobotonNombre.isSelected()) {
+            // Limpiar códigos para evitar conflictos
+            txtcodigodelcurso.clear();
+            checkCodigos.getItems().clear();
+
+            // Cargar nombres de cursos
+            List<String> nombresCursos = excelReader.obtenerNombresDeCursos(); // Método implementado en ExcelReader
+            checkNombres.getItems().clear(); // Limpia ComboBox
+            checkNombres.getItems().addAll(nombresCursos); // Agrega los nuevos datos
         }
     }
 
@@ -766,41 +790,40 @@ public class ExportacionReconocimientosController implements Initializable {
                 Sheet sheet = workbook.getSheetAt(0); // Asume que está en la primera hoja
 
                 for (Row row : sheet) {
-                    if (row.getRowNum() == 0) {
+                    if (row.getRowNum() <= 2) {
                         continue; // Omite encabezados
                     }
                     org.apache.poi.ss.usermodel.Cell codigoCell = row.getCell(0); // Columna con código del curso
-                    if (codigoCell != null) {
-                        codigos.add(codigoCell.getStringCellValue());
+                    if (codigoCell != null && !codigoCell.getStringCellValue().trim().isEmpty()) {
+                        codigos.add(codigoCell.getStringCellValue().trim());
                     }
                 }
             }
             return codigos;
         }
-        
+
         public String obtenerCodigoPorNombre(String nombreCurso) throws IOException {
-    try (FileInputStream fis = new FileInputStream(ETIQUETAS_PATH); Workbook workbook = new XSSFWorkbook(fis)) {
-        Sheet sheet = workbook.getSheetAt(0); // Asume que está en la primera hoja
+            try (FileInputStream fis = new FileInputStream(ETIQUETAS_PATH); Workbook workbook = new XSSFWorkbook(fis)) {
+                Sheet sheet = workbook.getSheetAt(0); // Asume que está en la primera hoja
 
-        for (Row row : sheet) {
-            if (row.getRowNum() == 0) {
-                continue; // Omite encabezados
-            }
+                for (Row row : sheet) {
+                    if (row.getRowNum() <= 0) {
+                        continue; // Omite encabezados
+                    }
 
-            // Asume que el nombre está en la columna 1 y el código en la columna 0
-            org.apache.poi.ss.usermodel.Cell nombreCell = row.getCell(1); // Columna con nombre del curso
-            org.apache.poi.ss.usermodel.Cell codigoCell = row.getCell(0); // Columna con código del curso
+                    // Asume que el nombre está en la columna 1 y el código en la columna 0
+                    org.apache.poi.ss.usermodel.Cell nombreCell = row.getCell(1); // Columna con nombre del curso
+                    org.apache.poi.ss.usermodel.Cell codigoCell = row.getCell(0); // Columna con código del curso
 
-            if (nombreCell != null && codigoCell != null) {
-                if (nombreCell.getStringCellValue().equalsIgnoreCase(nombreCurso)) {
-                    return codigoCell.getStringCellValue(); // Devuelve el código cuando encuentra el nombre
+                    if (nombreCell != null && codigoCell != null) {
+                        if (nombreCell.getStringCellValue().equalsIgnoreCase(nombreCurso)) {
+                            return codigoCell.getStringCellValue(); // Devuelve el código cuando encuentra el nombre
+                        }
+                    }
                 }
             }
+            return null; // Si no se encuentra el curso
         }
-    }
-    return null; // Si no se encuentra el curso
-}
-
 
         public List<String> obtenerNombresDeCursos() throws IOException {
             List<String> nombres = new ArrayList<>();
@@ -808,12 +831,12 @@ public class ExportacionReconocimientosController implements Initializable {
                 Sheet sheet = workbook.getSheetAt(0); // Asume que está en la primera hoja
 
                 for (Row row : sheet) {
-                    if (row.getRowNum() == 0) {
+                    if (row.getRowNum() <= 2) {
                         continue; // Omite encabezados
                     }
                     org.apache.poi.ss.usermodel.Cell nombreCell = row.getCell(1); // Columna con nombre del curso
-                    if (nombreCell != null) {
-                        nombres.add(nombreCell.getStringCellValue());
+                    if (nombreCell != null && !nombreCell.getStringCellValue().trim().isEmpty()) {
+                        nombres.add(nombreCell.getStringCellValue().trim());
                     }
                 }
             }

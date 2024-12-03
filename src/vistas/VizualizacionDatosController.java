@@ -230,7 +230,7 @@ public class VizualizacionDatosController implements Initializable {
             int año = calendario.get(Calendar.YEAR);
             int periodo = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
 
-            String rutaArchivoEventos = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\" + año + "\\" + periodo + "-" + año + "\\listado_de_pre_regitros_a_cursos_de_capacitacion\\";
+            String rutaArchivoEventos = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_importados\\" + año + "\\" + periodo + "-" + año + "\\listado_de_pre_regitro_a_cursos_de_capacitacion\\";
             int numeroSemana = obtenerUltimaSemana(rutaArchivoEventos, "listado\\_\\(Semana_\\d+\\)\\.xlsx", "Semana");
             rutaArchivoEventos += "listado_(Semana_" + numeroSemana + ").xlsx";
             System.out.println(rutaArchivoEventos);
