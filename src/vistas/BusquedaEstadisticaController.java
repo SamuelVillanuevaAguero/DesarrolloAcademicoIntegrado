@@ -50,9 +50,11 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import utilerias.busqueda.Docente;
+import utilerias.busqueda.ExcelReader;
 
 public class BusquedaEstadisticaController implements Initializable {
-    
+
     //BOTONES
     @FXML
     private Button botonCerrar;
@@ -70,7 +72,7 @@ public class BusquedaEstadisticaController implements Initializable {
     private Button botonExportar;
     @FXML
     private Label botonActualizarDatos;
-    
+
     //LISTAS DE OPCIONES (COMBOBOXES)
     @FXML
     private ComboBox<String> comboTipoCapacitacion;
@@ -78,8 +80,6 @@ public class BusquedaEstadisticaController implements Initializable {
     private ComboBox<String> comboDepartamento;
     @FXML
     private ComboBox<String> comboAcreditacion;
-    @FXML
-    private ComboBox<String> comboNivel;
     @FXML
     private ComboBox<Integer> comboAño;
     @FXML
@@ -90,7 +90,7 @@ public class BusquedaEstadisticaController implements Initializable {
     //TABLA
     @FXML
     private TableView<FilaDato> tabla;
-    
+
     //COLUMNAS DE LA TABLA
     @FXML
     private TableColumn<FilaDato, Integer> columnaAño;
@@ -112,7 +112,7 @@ public class BusquedaEstadisticaController implements Initializable {
     private TableColumn<FilaDato, String> columnaTipoCapacitacion;
     @FXML
     private TableColumn<FilaDato, Integer> columnaNumeroCursos;
-    
+
     //ETIQUETAS DE ESTADISTICAS
     @FXML
     private Label numeroTotalDocentes;
@@ -122,7 +122,7 @@ public class BusquedaEstadisticaController implements Initializable {
     private Label porcentajeDocentesCapacitados;
     @FXML
     private Label NumeroDocentesNivel;
-    
+
     //AUXILIAR PARA EL LLENADO DE LA TABLA
     private ObservableList data;
 
@@ -178,7 +178,7 @@ public class BusquedaEstadisticaController implements Initializable {
 
         String departamento = comboDepartamento.getValue();
         String acreditacion = comboAcreditacion.getValue();
-        String nivel = comboNivel.getValue();
+        String nivel = null;
 
         int año = comboAño.getValue() != null ? comboAño.getValue() : 0;
         int periodo = comboPeriodo.getValue() != null
@@ -302,36 +302,55 @@ public class BusquedaEstadisticaController implements Initializable {
 
             // Ajustar el nombre del archivo según el formato
             String extension = (formato == 1) ? ".pdf" : ".xlsx";
-            File archivoExportado = new File(rutaExportacion + "\\reporte_(Version_" + (version + 1) + ")" + extension);
+
+            File archivoExportado;
+            if (comboDepartamento.getValue() == null) {
+                archivoExportado = new File(rutaExportacion + "\\reporte_(Version_" + (version + 1) + ")" + extension);
+            } else {
+                archivoExportado = new File(rutaExportacion + "\\reporte_(Version_" + (version + 1) + ")" + extension);
+            }
 
             // Modificar el contenido del archivo si el formato es Excel
             if (formato == 2) {
                 int periodo = comboPeriodo.getValue().equalsIgnoreCase("Enero - Julio") ? 1 : 2;
-                llenarExcel(workbook, tabla, comboAño.getValue(), periodo);
+                //llenarExcel(workbook, tabla, comboAño.getValue(), periodo);
+                Map<String, Docente> docenteMap = ExcelReader.readExcel(comboAño.getValue(), periodo);
+                ExcelReader.processExcel(docenteMap, comboAño.getValue(), periodo);
+                ExcelReader.writeToExcel(workbook, docenteMap, comboDepartamento.getValue(), comboAño.getValue(), periodo);
 
                 // Guardar los cambios en el archivo exportado
                 try (FileOutputStream outputStream = new FileOutputStream(archivoExportado)) {
                     workbook.write(outputStream); // Guardar los cambios en el archivo de destino
                 }
 
+                String mensaje = comboDepartamento.getValue() == null
+                        ? "Reporte de todos los departamentos exportado exitosamente"
+                        : "Reporte del departamento " + comboDepartamento.getValue() + " exportado exitosamente.";
+
                 Alert alerta = new Alert(Alert.AlertType.INFORMATION);
-                alerta.setTitle("Guardado");
+                alerta.setTitle("Guardado EXCEL");
                 alerta.setHeaderText(null);
-                alerta.setContentText("Archivo EXCEL importado correctamente.");
+                alerta.setContentText(mensaje);
                 alerta.showAndWait();
 
                 System.out.println("Archivo exportado exitosamente como Excel en: " + archivoExportado.getAbsolutePath());
             } else if (formato == 1) {
                 // Exportar como PDF (implementación pendiente)
                 int periodo = comboPeriodo.getValue().equalsIgnoreCase("Enero - Julio") ? 1 : 2;
-                System.out.println("PERIODO: " + periodo);
-                llenarExcel(workbook, tabla, comboAño.getValue(), periodo);
+
+                Map<String, Docente> docenteMap = ExcelReader.readExcel(comboAño.getValue(), periodo);
+                ExcelReader.processExcel(docenteMap, comboAño.getValue(), periodo);
+                ExcelReader.writeToExcel(workbook, docenteMap, comboDepartamento.getValue(), comboAño.getValue(), periodo);
                 exportarAPDF(workbook, archivoExportado);
 
+                String mensaje = comboDepartamento.getValue() == null
+                        ? "Reporte de todos los departamentos exportado exitosamente"
+                        : "Reporte del departamento " + comboDepartamento.getValue() + " exportado exitosamente.";
+
                 Alert alerta = new Alert(Alert.AlertType.INFORMATION);
-                alerta.setTitle("Guardado");
+                alerta.setTitle("Guardado PDF");
                 alerta.setHeaderText(null);
-                alerta.setContentText("Archivo PDF importado correctamente.");
+                alerta.setContentText(mensaje);
                 alerta.showAndWait();
 
                 System.out.println("Archivo exportado exitosamente como PDF en: " + archivoExportado.getAbsolutePath());
@@ -671,7 +690,7 @@ public class BusquedaEstadisticaController implements Initializable {
             throw new IllegalArgumentException("El año no es válido");
         }
     }
-    
+
     public int obtenerNumeroFilasUnicas(ObservableList<FilaDato> data) {
         // Utilizamos un Set para almacenar combinaciones únicas
         Set<String> setUnico = new HashSet<>();
@@ -685,7 +704,7 @@ public class BusquedaEstadisticaController implements Initializable {
         // El tamaño del Set será el número de filas únicas
         return setUnico.size();
     }
-    
+
     private String obtenerCadenaCelda(Cell cell) {
         if (cell == null) {
             return "";
@@ -734,7 +753,7 @@ public class BusquedaEstadisticaController implements Initializable {
             return "";
         }
     }
-    
+
     public List<Integer> obtenerAniosDisponibles(String baseDirectoryPath) {
         List<Integer> years = new ArrayList<>();
         Path basePath = Paths.get(baseDirectoryPath);
@@ -784,7 +803,7 @@ public class BusquedaEstadisticaController implements Initializable {
         return null; // Devolver 0 si ocurre algún error
     }
     //FIN-------------------------------------------------------------------------------------------------------
-    
+
     //MÉTODO PARA LLENAR LA TABLA-------------------------------------------------------------------------------
     private ObservableList<FilaDato> readAllExcelFiles(Integer año, Integer periodo, String tipoCapacitacion, String departamento, String acreditacion, String nivel) throws InvalidFormatException {
         ObservableList<FilaDato> data = FXCollections.observableArrayList();
@@ -910,14 +929,13 @@ public class BusquedaEstadisticaController implements Initializable {
 
         data.addAll(dataMap.values());
         return data;
-    }    
+    }
     //FIN-------------------------------------------------------------------------------------------------------
-    
+
 //----------------------------------------------------------MÉTODOS DE LA INTERFAZ GRAFICA------------------------------------------------------------------------------------------//
     //MÉTODO INICIAL--------------------------------------------------------------------------------------------
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-
         columnaAño = new TableColumn<>("Año");
         columnaAño.setCellValueFactory(new PropertyValueFactory<>("año"));
         columnaPeriodo = new TableColumn<>("Periodo");
@@ -957,7 +975,6 @@ public class BusquedaEstadisticaController implements Initializable {
         comboTipoCapacitacion.getItems().addAll("Actualización profesional", "Formación docente");
         comboDepartamento.getItems().addAll("CIENCIAS BÁSICAS", "CIENCIAS ECONÓMICO ADMINISTRATIVAS", "CIENCIAS DE LA TIERRA", "INGENIERÍA INDUSTRIAL", "METAL MECÁNICA", "QUÍMICA Y BIOQUÍMICA", "SISTEMAS COMPUTACIONALES", "POSGRADO");
         comboAcreditacion.getItems().addAll("Si", "No", "Ambos");
-        comboNivel.getItems().addAll("Licenciatura", "Posgrado");
 
         tabla.setItems(data);
         int docentesCursos = obtenerNumeroFilasUnicas(data);
@@ -1012,9 +1029,16 @@ public class BusquedaEstadisticaController implements Initializable {
             comboTipoCapacitacion.setValue(null);
             comboDepartamento.setValue(null);
             comboAcreditacion.setValue(null);
-            comboNivel.setValue(null);
             comboFormato.setValue(null);
             tabla.getItems().clear();
+            metodoBuscar();
+
+            int filasDistintas = obtenerNumeroFilasUnicas(data);
+
+            numeroTotalDocentes.setText("" + totalDocentes);
+            porcentajeDocentesCapacitados.setText("" + (int) ((double) filasDistintas / totalDocentes * 100) + "%");
+
+            docentesTomandoCursos.setText("" + filasDistintas);
         });
 
         botonBuscar.setOnMouseClicked(event -> {
@@ -1034,14 +1058,14 @@ public class BusquedaEstadisticaController implements Initializable {
                 alerta.showAndWait();
                 return;
             }
-            if (comboDepartamento.getValue() == null) {
+            /*if (comboDepartamento.getValue() == null) {
                 Alert alerta = new Alert(Alert.AlertType.WARNING);
                 alerta.setTitle("Departamento");
                 alerta.setHeaderText(null);
                 alerta.setContentText("Selecciona departamento para exportar");
                 alerta.showAndWait();
                 return;
-            }
+            }*/
 
             metodoBuscar();
 
@@ -1051,7 +1075,14 @@ public class BusquedaEstadisticaController implements Initializable {
             int version = obtenerUltimaSemana(rutaArchivo, "formato\\_\\(Version_\\d+\\)\\.xlsx", "Version", "xlsx");
             rutaArchivo += "formato_(Version_" + version + ").xlsx";
 
-            String rutaExportacion = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_exportados\\" + año + "\\" + periodo + "-" + año + "\\reportes_estadisticos\\" + comboDepartamento.getValue();
+            String rutaExportacion = "";
+            if (comboDepartamento.getValue() == null) {
+                rutaExportacion = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_exportados\\" + año + "\\" + periodo + "-" + año + "\\reportes_estadisticos\\TODOS";
+            } else {
+                rutaExportacion = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Archivos_exportados\\" + año + "\\" + periodo + "-" + año + "\\reportes_estadisticos" + "\\" + comboDepartamento.getValue();
+            }
+
+            System.out.println("REXPORTACIÓN:" + rutaExportacion);
             int versionReporte = obtenerUltimaSemana(rutaExportacion, "reporte\\_\\(Version_\\d+\\)\\.xlsx", "Version", "xlsx");
             switch (comboFormato.getValue() == null ? "default" : comboFormato.getValue()) {
                 case "PDF":
@@ -1095,4 +1126,6 @@ public class BusquedaEstadisticaController implements Initializable {
         ControladorGeneral.regresar(event, "ImportacionArchivos", getClass());
     }
     //FIN---------------------------------------------------------------------------------------------------------
+
+    //MÉTODO PARA LEER EL EXCEL DE LOS DOCENTES ADSCTRITOS
 }

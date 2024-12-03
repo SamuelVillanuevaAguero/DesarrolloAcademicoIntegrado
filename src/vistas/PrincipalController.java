@@ -21,6 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
@@ -99,11 +100,108 @@ public class PrincipalController implements Initializable {
     public void minimizarVentana(MouseEvent event) {
         ControladorGeneral.minimizarVentana(event);
     }
+    
+      private boolean validarEstructuraArchivos() {
+        // Obtener año y periodo actual
+        Calendar calendario = Calendar.getInstance();
+        int año = calendario.get(Calendar.YEAR);
+        int periodo = (calendario.get(Calendar.MONTH) + 1) < 7 ? 1 : 2;
+
+        // Rutas base para los directorios a validar
+        String rutaBaseImportados = ControladorGeneral.obtenerRutaDeEjecusion()
+                + File.separator + "Gestion_de_Cursos" 
+                + File.separator + "Archivos_importados"
+                + File.separator + año
+                + File.separator + periodo + "-" + año;
+
+        String rutaInfoModificable = ControladorGeneral.obtenerRutaDeEjecusion()
+                + File.separator + "Gestion_de_Cursos"
+                + File.separator + "Sistema"
+                + File.separator + "informacion_modificable";
+
+        // Subcarpetas a validar
+        String[] subcarpetas = {
+            "formato_de_hojas_membretadas_para_reconocimientos",
+            "formato_de_lista_de_asistencias",
+            "formato_de_reporte_para_docentes_capacitados",
+            "listado_de_deteccion_de_necesidades",
+            "listado_de_etiquetas_de_cursos",
+            "listado_de_pre_regitro_a_cursos_de_capacitacion",
+            "listado_de_docentes_adscritos",
+            "programa_institucional"
+        };
+        
+          System.out.println("DIR: "+rutaBaseImportados);
+        // Validar estructura de subcarpetas de archivos importados
+        File dirImportados = new File(rutaBaseImportados);
+        if (!dirImportados.exists()) {
+            deshabilitarBotones();
+            return false;
+        }
+
+        // Verificar cada subcarpeta
+        for (String subcarpeta : subcarpetas) {
+            File dirSubcarpeta = new File(dirImportados, subcarpeta);
+            if (!dirSubcarpeta.exists() || !tieneArchivos(dirSubcarpeta)) {
+                deshabilitarBotones();
+                return false;
+            }
+        }
+
+        // Validar archivo info.xlsx
+        File archivoInfo = new File(rutaInfoModificable, "info.xlsx");
+        if (!archivoInfo.exists()) {
+            deshabilitarBotones();
+            return false;
+        }
+
+        // Validar hoja del año actual en info.xlsx
+        try (FileInputStream fis = new FileInputStream(archivoInfo);
+             Workbook workbook = new XSSFWorkbook(fis)) {
+            
+            boolean tieneHojaDelAño = false;
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                if (workbook.getSheetName(i).equals(String.valueOf(año))) {
+                    tieneHojaDelAño = true;
+                    break;
+                }
+            }
+
+            if (!tieneHojaDelAño) {
+                deshabilitarBotones();
+                return false;
+            }
+        } catch (IOException e) {
+            deshabilitarBotones();
+            return false;
+        }
+
+        return true;
+    }
+
+    // Método para verificar si un directorio tiene archivos
+    private boolean tieneArchivos(File directorio) {
+        File[] archivos = directorio.listFiles();
+        return archivos != null && archivos.length > 0;
+    }
+
+     public void deshabilitarBotones(){
+        botonBusqueda.setDisable(true);
+        botonVisualizacion.setDisable(true);
+        botonExportacion.setDisable(true);
+    }
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        // TODO
+        /// Validar estructura de archivos antes de continuar
+        validarEstructuraArchivos();
+
+        // Asegurar que notificationPane esté cerrado inicialmente
+        notificationPane.setVisible(false);
+
         generarNotificacionesEnVBox();
+        
+         
         botonCerrar.setOnMouseClicked(event -> {
             try {
                 cerrarVentana(event);
@@ -167,6 +265,8 @@ public class PrincipalController implements Initializable {
                 Logger.getLogger(PrincipalController.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
+        
+        
 
         // Obtener año y periodo actual
         Calendar calendario = Calendar.getInstance();

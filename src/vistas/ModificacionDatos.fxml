@@ -21,16 +21,16 @@
             <Button fx:id="botonCerrar" mnemonicParsing="false" styleClass="title-button" text="x" />
          </children>
       </HBox>
-      <Button fx:id="botonGuardar" layoutX="217.0" layoutY="486.0" mnemonicParsing="false" styleClass="button-azul" text="Guardar" />
-      <Button fx:id="botonLimpiar" layoutX="90.0" layoutY="486.0" mnemonicParsing="false" styleClass="button-gris" text="Limpiar" />
-      <Label layoutX="90.0" layoutY="280.0" text="Director:" />
-      <Label layoutX="561.0" layoutY="280.0" text="Coordinador:" />
-      <Label layoutX="90.0" layoutY="378.0" text="Jefe del Departamento de Desarrollo Academico:" />
-      <Label layoutX="557.0" layoutY="378.0" text="Total de Docentes Adscritos:" />
-      <TextField fx:id="directorField" layoutX="90.0" layoutY="306.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="32.0" prefWidth="359.0" promptText="Nombre del director(a)" />
-      <TextField fx:id="coordinadorField" layoutX="557.0" layoutY="306.0" prefHeight="32.0" prefWidth="302.0" promptText="Nombre del Coordinador(a)" />
-      <TextField fx:id="jefeDeptoField" layoutX="90.0" layoutY="400.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="32.0" prefWidth="359.0" promptText="Nombre del Jefe de Departamento de Desarrollo Academico" />
-      <Label alignment="CENTER" layoutX="-1.0" layoutY="139.0" prefHeight="102.0" prefWidth="1012.0" style="-fx-font-size: 40;" styleClass="title" text="Modificación de datos" textFill="#0735b1" AnchorPane.topAnchor="120.0" />
+      <Button fx:id="botonGuardar" layoutX="821.0" layoutY="495.0" mnemonicParsing="false" styleClass="button-azul" text="Guardar" />
+      <Button fx:id="botonLimpiar" layoutX="120.0" layoutY="488.0" mnemonicParsing="false" styleClass="button-gris" text="Limpiar" />
+      <Label layoutX="543.0" layoutY="206.0" text="Director:" />
+      <Label layoutX="543.0" layoutY="376.0" text="Coordinador:" />
+      <Label layoutX="543.0" layoutY="289.0" text="Jefe del Departamento de Desarrollo Academico:" />
+      <Label layoutX="123.0" layoutY="376.0" text="Total de Docentes Adscritos por Departamento:" />
+      <TextField fx:id="directorField" layoutX="542.0" layoutY="224.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="38.0" prefWidth="359.0" promptText="Nombre del director(a)" />
+      <TextField fx:id="coordinadorField" layoutX="543.0" layoutY="397.0" prefHeight="38.0" prefWidth="359.0" promptText="Nombre del Coordinador(a)" />
+      <TextField fx:id="jefeDeptoField" layoutX="543.0" layoutY="310.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="38.0" prefWidth="359.0" promptText="Nombre del Jefe de Departamento de Desarrollo Academico" />
+      <Label alignment="CENTER" layoutY="113.0" prefHeight="102.0" prefWidth="1012.0" style="-fx-font-size: 40;" styleClass="title" text="Modificación de datos" textFill="#0735b1" AnchorPane.topAnchor="113.0" />
       <ImageView fitHeight="102.0" fitWidth="101.0" layoutX="790.0" layoutY="42.0" pickOnBounds="true" preserveRatio="true" AnchorPane.rightAnchor="125.0">
          <image>
             <Image url="@../utilerias/modificacion/logoITZ.png" />
@@ -51,11 +51,11 @@
             <Image url="@../utilerias/modificacion/logoTECNM.png" />
          </image>
       </ImageView>
-      <Spinner fx:id="totalDocentes" layoutX="746.0" layoutY="412.0" prefHeight="42.0" prefWidth="90.0" />
-      <Spinner fx:id="año" layoutX="90.0" layoutY="234.0" prefHeight="32.0" prefWidth="90.0" />
-      <ComboBox fx:id="periodoEscolar" layoutX="557.0" layoutY="231.0" prefWidth="150.0" promptText="Periodo escolar" styleClass="combo-box" />
-      <Label layoutX="90.0" layoutY="207.0" text="Año:" />
-      <Label layoutX="561.0" layoutY="207.0" text="Periodo:" />
-      <ComboBox fx:id="departamentos" layoutX="557.0" layoutY="412.0" prefWidth="150.0" />
+      <Spinner fx:id="totalDocentes" layoutX="357.0" layoutY="397.0" prefHeight="38.0" prefWidth="99.0" />
+      <Spinner fx:id="año" layoutX="123.0" layoutY="224.0" prefHeight="32.0" prefWidth="90.0" />
+      <ComboBox fx:id="periodoEscolar" layoutX="123.0" layoutY="310.0" prefWidth="150.0" promptText="Periodo escolar" styleClass="combo-box" />
+      <Label layoutX="123.0" layoutY="206.0" text="Año:" />
+      <Label layoutX="123.0" layoutY="289.0" text="Periodo:" />
+      <ComboBox fx:id="departamento" layoutX="123.0" layoutY="398.0" prefHeight="38.0" prefWidth="221.0" promptText="Departamento" />
    </children>
 </AnchorPane>

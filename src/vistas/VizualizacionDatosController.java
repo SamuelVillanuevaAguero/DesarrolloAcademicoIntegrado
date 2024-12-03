@@ -16,9 +16,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -39,6 +41,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -300,38 +306,131 @@ public class VizualizacionDatosController implements Initializable {
 
     @FXML
     private void Exportar(ActionEvent event) {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Buscar Curso");
-        dialog.setHeaderText("Ingrese el nombre del curso a exportar:");
-        dialog.setContentText("Nombre del curso:");
+        // Preguntar si desea exportar un solo curso o todos los cursos
+        Alert opcionExportacion = new Alert(AlertType.CONFIRMATION);
+        opcionExportacion.setTitle("Opciones de Exportación");
+        opcionExportacion.setHeaderText("Seleccione el tipo de exportación");
+        opcionExportacion.setContentText("¿Desea exportar la lista de asistencia de un curso específico o de todos los cursos?");
 
-        Optional<String> resultado = dialog.showAndWait();
-        if (!resultado.isPresent()) {
+        ButtonType botonUnCurso = new ButtonType("Un Curso");
+        ButtonType botonTodosLosCursos = new ButtonType("Todos los Cursos");
+        ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        opcionExportacion.getButtonTypes().setAll(botonUnCurso, botonTodosLosCursos, botonCancelar);
+        Optional<ButtonType> opcionSeleccionada = opcionExportacion.showAndWait();
+
+        if (opcionSeleccionada.isEmpty() || opcionSeleccionada.get() == botonCancelar) {
             return;
         }
 
-        String cursoIngresado = limpiarTextoInicial(resultado.get().trim());
+        if (opcionSeleccionada.get() == botonUnCurso) {
+            // Mostrar CheckList para seleccionar un curso
+            Dialog<String> dialog = new Dialog<>();
+            dialog.setTitle("Seleccionar Curso");
+            dialog.setHeaderText("Seleccione un curso de la lista");
 
-        if (cursoIngresado.isEmpty()) {
-            mostrarAlerta("No encontrado", "No se encontraron registros para el curso especificado.", AlertType.WARNING);
-            return;
+            ListView<String> listView = new ListView<>();
+
+            // Eliminar duplicados utilizando distinct() en el stream
+            listView.getItems().addAll(
+                    eventoList.stream()
+                            .map(Evento::getNombreEvento)
+                            .distinct() // Esto elimina los duplicados
+                            .collect(Collectors.toList())
+            );
+
+            dialog.getDialogPane().setContent(listView);
+            ButtonType botonSeleccionar = new ButtonType("Seleccionar", ButtonBar.ButtonData.OK_DONE);
+            dialog.getDialogPane().getButtonTypes().addAll(botonSeleccionar, ButtonType.CANCEL);
+
+            dialog.setResultConverter(dialogButton -> {
+                if (dialogButton == botonSeleccionar) {
+                    return listView.getSelectionModel().getSelectedItem();
+                }
+                return null;
+            });
+
+            Optional<String> resultado = dialog.showAndWait();
+            if (!resultado.isPresent()) {
+                return;
+            }
+
+            String cursoIngresado = limpiarTextoInicial(resultado.get().trim());
+
+            if (cursoIngresado.isEmpty()) {
+                mostrarAlerta("No encontrado", "No se encontraron registros para el curso especificado.", AlertType.WARNING);
+                return;
+            }
+
+            // Buscar eventos que coincidan con el curso (ignorando números iniciales)
+            List<Evento> eventosFiltrados = eventoList.stream()
+                    .filter(e -> limpiarTextoInicial(e.getNombreEvento())
+                    .toLowerCase()
+                    .contains(cursoIngresado.toLowerCase()))
+                    .collect(Collectors.toList());
+
+            if (eventosFiltrados.isEmpty()) {
+                mostrarAlerta("No encontrado", "No se encontraron registros para el curso especificado.", AlertType.WARNING);
+                return;
+            }
+
+            // Exportar el curso seleccionado
+            try {
+                exportarCurso(eventosFiltrados, cursoIngresado);
+                mostrarAlerta("Exportación exitosa",
+                        "Se exportó correctamente la lista de asistencia del curso: " + cursoIngresado,
+                        AlertType.INFORMATION);
+            } catch (Exception e) {
+                mostrarAlerta("Error", "No se pudo exportar la lista de asistencia del curso: " + cursoIngresado, AlertType.ERROR);
+            }
+
+        } else if (opcionSeleccionada.get() == botonTodosLosCursos) {
+            // Seguimiento de cursos exportados
+            int cursosExportados = 0;
+            int cursosConError = 0;
+            Set<String> cursosProcesados = new HashSet<>();
+
+            for (Evento evento : eventoList) {
+                String cursoIngresado = limpiarTextoInicial(evento.getNombreEvento().trim());
+
+                // Evitar procesar cursos duplicados
+                if (cursosProcesados.contains(cursoIngresado)) {
+                    continue;
+                }
+
+                List<Evento> eventosFiltrados = eventoList.stream()
+                        .filter(e -> limpiarTextoInicial(e.getNombreEvento())
+                        .toLowerCase()
+                        .contains(cursoIngresado.toLowerCase()))
+                        .collect(Collectors.toList());
+
+                if (!eventosFiltrados.isEmpty()) {
+                    try {
+                        exportarCurso(eventosFiltrados, cursoIngresado);
+                        cursosExportados++;
+                        cursosProcesados.add(cursoIngresado);
+                    } catch (Exception e) {
+                        cursosConError++;
+                        System.err.println("Error exportando curso: " + cursoIngresado);
+                    }
+                }
+            }
+
+            // Mostrar mensaje de resumen
+            String mensajeResumen = "Se exportaron exitosamente " + cursosExportados + " listas de asistencia ";
+            if (cursosConError > 0) {
+                mensajeResumen += " (" + cursosConError + " cursos no se pudieron exportar)";
+            }
+
+            mostrarAlerta("Exportación exitosa!",
+                    mensajeResumen,
+                    AlertType.INFORMATION);
         }
+    }
 
-        // Buscar eventos que coincidan con el curso (ignorando números iniciales)
-        List<Evento> eventosFiltrados = eventoList.stream()
-                .filter(e -> limpiarTextoInicial(e.getNombreEvento())
-                .toLowerCase()
-                .contains(cursoIngresado.toLowerCase()))
-                .collect(Collectors.toList());
-
-        if (eventosFiltrados.isEmpty()) {
-            mostrarAlerta("No encontrado", "No se encontraron registros para el curso especificado.", AlertType.WARNING);
-            return;
-        }
-
+    private void exportarCurso(List<Evento> eventosFiltrados, String cursoIngresado) throws InvalidFormatException {
         try {
             // Configuración de rutas
-            //String desktopPath = System.getProperty("user.home") + File.separator + "Desktop";
             String gestionCursosPath = ControladorGeneral.obtenerRutaDeEjecusion() + File.separator + "Gestion_de_Cursos";
 
             LocalDate fechaActual = LocalDate.now();
@@ -347,8 +446,7 @@ public class VizualizacionDatosController implements Initializable {
             // Buscar última versión del formato
             File carpetaFormatos = new File(rutaCarpetaFormatos);
             if (!carpetaFormatos.exists() || !carpetaFormatos.isDirectory()) {
-                mostrarAlerta("Error", "No se encontró la carpeta de formatos en: " + rutaCarpetaFormatos, AlertType.ERROR);
-                return;
+                throw new IOException("No se encontró la carpeta de formatos en: " + rutaCarpetaFormatos);
             }
 
             File[] archivosFormato = carpetaFormatos.listFiles((dir, name)
@@ -356,8 +454,7 @@ public class VizualizacionDatosController implements Initializable {
             );
 
             if (archivosFormato == null || archivosFormato.length == 0) {
-                mostrarAlerta("Error", "No se encontraron formatos en: " + rutaCarpetaFormatos, AlertType.ERROR);
-                return;
+                throw new IOException("No se encontraron formatos en: " + rutaCarpetaFormatos);
             }
 
             File ultimaVersion = Arrays.stream(archivosFormato)
@@ -374,8 +471,7 @@ public class VizualizacionDatosController implements Initializable {
                 workbook = WorkbookFactory.create(new FileInputStream(ultimaVersion));
             } catch (InvalidFormatException | EncryptedDocumentException ex) {
                 Logger.getLogger(VizualizacionDatosController.class.getName()).log(Level.SEVERE, null, ex);
-                mostrarAlerta("Error", "Error al abrir el formato: " + ex.getMessage(), AlertType.ERROR);
-                return;
+                throw new IOException("Error al abrir el formato: " + ex.getMessage());
             }
             Sheet sheet = workbook.getSheetAt(0);
 
@@ -403,12 +499,14 @@ public class VizualizacionDatosController implements Initializable {
 
             try (FileOutputStream fileOut = new FileOutputStream(rutaCompleta)) {
                 workbook.write(fileOut);
-                mostrarAlerta("Éxito", "Archivo exportado correctamente en: " + rutaCompleta, AlertType.INFORMATION);
+                // No mostrar alerta individual aquí
             }
 
         } catch (IOException e) {
-            mostrarAlerta("Error", "Error al exportar el archivo: " + e.getMessage(), AlertType.ERROR);
+            // Registro de error para depuración
             e.printStackTrace();
+            // No mostrar alerta individual
+            throw new RuntimeException("Error al exportar curso: " + cursoIngresado, e);
         }
     }
 
@@ -423,22 +521,25 @@ public class VizualizacionDatosController implements Initializable {
     }
 
 // Método principal que maneja el llenado del formato
-    private void llenarFormato(Sheet sheet, String cursoBuscado, Evento primerEvento) {
+    private void llenarFormato(Sheet sheet, String cursoBuscado, Evento primerEvento) throws InvalidFormatException {
         try {
             // Obtener información del curso del programa institucional
             InfoCurso infoCurso = obtenerInfoCurso(cursoBuscado);
+            String nombreCoordinador = obtenerNombreCoordinador();
 
             // Crear estilo simple para las celdas
             // Llenar datos del encabezado
             setCellValue(sheet, "D8", cursoBuscado);                    // NOMBRE DEL EVENTO
             setCellValue(sheet, "D9", limpiarTextoInicial(primerEvento.getNombreFacilitador())); // NOMBRE DEL FACILITADOR
             setCellValue(sheet, "D10", primerEvento.getPeriodo());          // PERIODO
-            setCellValue(sheet, "D11", "17DIT0009T");                       // SEDE
+            setCellValue(sheet, "D11", "Instituto Tecnológico de Zacatepec");                       // SEDE
 
+            setCellValue(sheet, "D38", limpiarTextoInicial(primerEvento.getNombreFacilitador()));
             // Establecer horario y duración obtenidos del programa institucional
             setCellValue(sheet, "Q9", infoCurso.horario);              // HORARIO
             setCellValue(sheet, "J9", String.valueOf(infoCurso.duracion) + " horas"); // DURACIÓN
 
+            setCellValue(sheet, "I38", nombreCoordinador);
             // Tipo de capacitación
             String tipoCapacitacion = primerEvento.getCapacitacion().equals("AP")
                     ? "Acreditación Profesional"
@@ -471,7 +572,42 @@ public class VizualizacionDatosController implements Initializable {
         }
     }
 
+    private String obtenerNombreCoordinador() throws IOException, InvalidFormatException {
+        // Obtener la ruta base de ejecución
+        String rutaBase = ControladorGeneral.obtenerRutaDeEjecusion()
+                + File.separator + "Gestion_de_Cursos"
+                + File.separator + "Sistema"
+                + File.separator + "informacion_modificable"
+                + File.separator + "info.xlsx";
+
+        try (Workbook workbook = WorkbookFactory.create(new File(rutaBase))) {
+            // Obtener el año actual
+            int añoActual = LocalDate.now().getYear();
+
+            // Buscar la hoja con el nombre del año actual
+            Sheet sheet = null;
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                if (workbook.getSheetName(i).equals(String.valueOf(añoActual))) {
+                    sheet = workbook.getSheetAt(i);
+                    break;
+                }
+            }
+
+            // Si no se encuentra la hoja del año actual, lanzar una excepción
+            if (sheet == null) {
+                throw new IOException("No se encontró la hoja para el año " + añoActual);
+            }
+
+            // Obtener el valor de la celda B3 (coordinador)
+            Row row = sheet.getRow(2); // Fila 3 (índice 2)
+            Cell cell = row.getCell(1); // Columna B (índice 1)
+
+            // Devolver el valor de la celda como cadena, o una cadena vacía si está vacía
+            return cell != null ? cell.getStringCellValue().trim() : "";
+        }
+    }
 // Método para llenar la tabla de participantes
+
     private void llenarTablaParticipantes(Sheet sheet, List<Evento> eventos, CellStyle style) {
         int rowNum = 15; // Comienza en la fila 15 (donde inicia la tabla de participantes)
 
@@ -514,7 +650,7 @@ public class VizualizacionDatosController implements Initializable {
 
     // Método para obtener el archivo de programa institucional más reciente
     private File obtenerProgramaInstitucionalReciente(String año, String periodo) throws IOException {
-        String rutaProgramas = ControladorGeneral.obtenerRutaDeEjecusion() 
+        String rutaProgramas = ControladorGeneral.obtenerRutaDeEjecusion()
                 + File.separator + "Gestion_de_Cursos"
                 + File.separator + "Archivos_importados"
                 + File.separator + año
@@ -611,7 +747,7 @@ public class VizualizacionDatosController implements Initializable {
         return "";
     }
 
-// Método helper para extraer el número de versión del nombre del archivo
+    // Método helper para extraer el número de versión del nombre del archivo
     private int extraerNumeroVersion(String nombreArchivo) {
         Pattern pattern = Pattern.compile("formato_\\(version_(\\d+)\\)\\.xlsx", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(nombreArchivo);
@@ -621,7 +757,7 @@ public class VizualizacionDatosController implements Initializable {
         return 0; // Retorna 0 si no encuentra un número de versión
     }
 
-// Método helper para crear celdas de manera segura
+    // Método helper para crear celdas de manera segura
     private void createCell(Row row, int column, Object value, CellStyle style) {
         Cell cell = row.createCell(column);
         if (value instanceof String) {
@@ -668,12 +804,6 @@ public class VizualizacionDatosController implements Initializable {
 
         // Si el campo de búsqueda está vacío, mostramos una advertencia.
         if (textoBusqueda.isEmpty()) {
-            /*
-            Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle("Campo de Búsqueda Vacío");
-            alert.setHeaderText(null);
-            alert.setContentText("Por favor, introduce un valor para buscar.");
-            alert.showAndWait();*/
             tableView.setItems(eventoList);
             return;
         }
@@ -695,12 +825,6 @@ public class VizualizacionDatosController implements Initializable {
 
         // Si no se encuentra ningún resultado, mostramos un mensaje de información y restauramos la tabla completa.
         if (datosFiltrados.isEmpty()) {
-            /*
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Resultado de Búsqueda");
-            alert.setHeaderText(null);
-            alert.setContentText("No se encontró ningún resultado para \"" + textoBusqueda + "\".");
-            alert.showAndWait();*/
 
             // Restauramos la tabla con todos los datos
             tableView.setItems(null);
@@ -709,8 +833,6 @@ public class VizualizacionDatosController implements Initializable {
             tableView.setItems(datosFiltrados);
         }
 
-        // Limpiar el campo de búsqueda después de realizar la búsqueda
-        //campoBusqueda.clear();
     }
 
     @FXML
@@ -837,8 +959,68 @@ public class VizualizacionDatosController implements Initializable {
         ControladorGeneral.minimizarVentana(event);
     }
 
+    @FXML
     public void regresarVentana(MouseEvent event) throws IOException {
-        ControladorGeneral.regresar(event, "Principal", getClass());
+        // Check if there are any unsaved changes
+        if (hayCambiosSinGuardar()) {
+            // Mostrar diálogo de confirmación
+            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacion.setTitle("Cambios sin guardar");
+            confirmacion.setHeaderText("Hay cambios sin guardar");
+            confirmacion.setContentText("¿Desea guardar los cambios antes de salir?");
+
+            // Añadir botones personalizados
+            ButtonType btnGuardar = new ButtonType("Guardar");
+            ButtonType btnSalirSinGuardar = new ButtonType("Salir sin guardar");
+            ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+            confirmacion.getButtonTypes().setAll(btnGuardar, btnSalirSinGuardar, btnCancelar);
+
+            // Mostrar y esperar la respuesta del usuario
+            Optional<ButtonType> resultado = confirmacion.showAndWait();
+
+            if (resultado.get() == btnGuardar) {
+                // Intentar guardar los datos
+                boolean guardadoExitoso = guardarDatos();
+                if (guardadoExitoso) {
+                    // Si se guardó correctamente, regresar a la ventana anterior
+                    ControladorGeneral.regresar(event, "Principal", getClass());
+                } else {
+                    // Si hubo un error al guardar, mostrar mensaje de error
+                    Alert errorAlGuardar = new Alert(Alert.AlertType.ERROR);
+                    errorAlGuardar.setTitle("Error");
+                    errorAlGuardar.setHeaderText(null);
+                    errorAlGuardar.setContentText("No se pudieron guardar los cambios.");
+                    errorAlGuardar.showAndWait();
+                }
+            } else if (resultado.get() == btnSalirSinGuardar) {
+                // Salir sin guardar
+                ControladorGeneral.regresar(event, "Principal", getClass());
+            }
+            // Si se selecciona Cancelar, no hacer nada (permanece en la ventana actual)
+        } else {
+            // Si no hay cambios, regresar normalmente
+            ControladorGeneral.regresar(event, "Principal", getClass());
+        }
+    }
+
+// Método para verificar si hay cambios sin guardar
+    private boolean hayCambiosSinGuardar() {
+        // Obtener los estados de acreditación originales
+        HashMap<String, Boolean> estadosOriginales = cargarEstadosAcreditacion();
+
+        // Verificar cada evento en la lista actual
+        for (Evento evento : tableView.getItems()) {
+            // Crear la clave única como en el método cargarEstadosAcreditacion
+            String key = evento.getRfc() + "|" + evento.getNombreEvento();
+
+            // Verificar si el estado de acreditación ha cambiado
+            Boolean estadoOriginal = estadosOriginales.get(key);
+            if (estadoOriginal == null || estadoOriginal != evento.isAcreditado()) {
+                return true; // Hay cambios sin guardar
+            }
+        }
+
+        return false; // No hay cambios
     }
 
     public static class Evento {
