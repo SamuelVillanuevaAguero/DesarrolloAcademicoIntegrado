@@ -274,7 +274,7 @@ public class ImportacionArchivosController implements Initializable {
         String condensadosVista = directorioSistema + separador + "condensados_vista_de_visualizacion_de_datos";
         String informacionModificable = directorioSistema + separador + "informacion_modificable";
         String informacionNotificaciones = directorioSistema + separador + "informacion_notificaciones";
-        String registrosContrasenas = directorioSistema + separador + "registros_contraseñas";
+        String registrosContrasenas = directorioSistema + separador + "registros_contrasenas";
 
         crearDirectorio(condensadosVista);
         crearDirectorio(informacionModificable);

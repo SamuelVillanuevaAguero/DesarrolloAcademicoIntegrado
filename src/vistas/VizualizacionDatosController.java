@@ -818,6 +818,7 @@ public class VizualizacionDatosController implements Initializable {
                     || info.getSexo().toLowerCase().contains(textoBusqueda)
                     || info.getNombreEvento().toLowerCase().contains(textoBusqueda)
                     || info.getDepartamento().toLowerCase().contains(textoBusqueda)
+                    || info.getCapacitacion().toLowerCase().contains(textoBusqueda)
                     || info.getNombreFacilitador().toLowerCase().contains(textoBusqueda)
                     || info.getPeriodo().toLowerCase().contains(textoBusqueda)
                     || info.getPuesto().toLowerCase().contains(textoBusqueda);

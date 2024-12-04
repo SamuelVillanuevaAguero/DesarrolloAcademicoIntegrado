@@ -55,7 +55,7 @@ public class InicioSesionController implements Initializable {
     private String usuarioPredefinido = "Administrador";
     public String contraseñaPredefinida;
 
-    private static final String FILE_PATH = ControladorGeneral.obtenerRutaDeEjecusion()+"\\Gestion_de_Cursos\\Sistema\\registros_contraseñas\\contraseña_historial.txt";
+    private static final String FILE_PATH = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\registros_contrasenas\\contrasena_historial.txt";
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -211,16 +211,16 @@ public class InicioSesionController implements Initializable {
 
     //Dentro del panel restablcer contraseña enviar un correo a los destinos marcados.
     private void restablecerContraseña() {
-        Enviando.setVisible(true); // Mostrar el mensaje "Enviando..."
+        EnviarCorreo.setDisable(true);
+        Enviando.setVisible(true); // Mostrar el mensaje "Enviando..." 
 
         String[] destinatarios = {
-            "L21091003@zacatepec.tecnm.mx",
-            "xochitlmaritzafloressarabia@gmail.com" // Lista de destinatarios
+            //"dda_zacatepec@tecnm.mx",
+            //"martha.cl@zacatepec.tecnm.mx",
+            "L21091124@zacatepec.tecnm.mx"// Lista de destinatarios
         };
 
         String nuevaContraseña = generarContraseñaAleatoria();
-        guardarContraseñaEnArchivo(nuevaContraseña); // Guardar nueva contraseña
-        contraseñaPredefinida = nuevaContraseña; // Actualizar contraseña predefinida
 
         new Thread(() -> {
             boolean todosEnviadosConExito = true; // Declarar fuera del ciclo
@@ -235,11 +235,17 @@ public class InicioSesionController implements Initializable {
             final boolean resultadoFinal = todosEnviadosConExito; // Capturar el resultado para Platform.runLater
             Platform.runLater(() -> {
                 Enviando.setVisible(false); // Ocultar "Enviando..."
-
+                
                 if (resultadoFinal) {
+                    guardarContraseñaEnArchivo(nuevaContraseña); // Guardar nueva contraseña
+                    contraseñaPredefinida = nuevaContraseña; // Actualizar contraseña predefinida
+                    EnviarCorreo.setDisable(false);
                     mostrarAlertaExito("Correo enviado con nueva contraseña.");
+                    
                 } else {
+                    EnviarCorreo.setDisable(false);
                     mostrarAlertaError("No se pudo enviar a uno o más destinatarios.");
+                    
                 }
             });
         }).start();
