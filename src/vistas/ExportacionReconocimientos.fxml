@@ -50,8 +50,13 @@
       <Label layoutX="136.0" layoutY="131.0" text="Selecciona una opcion para  realizar tu busqueda" />
       <RadioButton fx:id="radiobotonCodigo" layoutX="179.0" layoutY="157.0" mnemonicParsing="false" onAction="#seleccionCodigo" text="Codigo" />
       <RadioButton fx:id="radiobotonNombre" layoutX="288.0" layoutY="157.0" mnemonicParsing="false" onAction="#seleccionNombre" text="Nombre" />
-      <Label layoutX="143.0" layoutY="42.0" styleClass="title" text="Exportación de reconocimientos" />
+      <Label alignment="CENTER" layoutX="-1.0" layoutY="42.0" prefHeight="70.0" prefWidth="1012.0" styleClass="title" text="Exportación de reconocimientos" />
       <ComboBox fx:id="checkCodigos" layoutX="158.0" layoutY="195.0" prefHeight="38.0" prefWidth="200.0" />
       <ComboBox fx:id="checkNombres" layoutX="160.0" layoutY="272.0" prefHeight="38.0" prefWidth="266.0" />
+      <ImageView fitHeight="24.0" fitWidth="24.0" layoutX="742.0" layoutY="129.0" pickOnBounds="true" preserveRatio="true">
+         <image>
+            <Image url="@../utilerias/visualizacionDatos/edit.png" />
+         </image>
+      </ImageView>
    </children>
 </AnchorPane>

@@ -56,6 +56,6 @@
             <Image url="@../utilerias/visualizacionDatos/edit.png" />
          </image>
       </ImageView>
-      <Label layoutX="273.0" layoutY="42.0" styleClass="title" text="Búsqueda y Estadísticas" />
+      <Label alignment="CENTER" layoutX="-1.0" layoutY="42.0" prefHeight="70.0" prefWidth="1012.0" styleClass="title" text="Búsqueda y Estadísticas" />
    </children>
 </AnchorPane>

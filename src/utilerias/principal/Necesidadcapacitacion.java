@@ -33,6 +33,7 @@ public class Necesidadcapacitacion {
                 }
             }
         }
+
         return String.valueOf(ultimaSemana);
     }
 
@@ -76,10 +77,12 @@ public class Necesidadcapacitacion {
                 throw new IOException("No se pudieron crear los directorios necesarios para la salida");
             }
         }
-
+        //Semana de recomendables
+        String semanaRecomdables = obtenerUltimaSemana(rutaCapacitacionDir, 
+            "docentes_recomendables_\\(Semana_(\\d+)\\)\\.xlsx", "Semana");
         // Construir ruta completa del archivo de salida
         String rutaSalida = rutaBaseSalida + "docentes_recomendables_(Semana_" + 
-            semanaCapacitacion + ").xlsx";
+            (Integer.parseInt(semanaRecomdables) + 1) + ").xlsx";
 
         // Leer archivos
         List<String[]> listaCapacitacion = leerCapacitacion(rutaCapacitacion);
@@ -117,6 +120,7 @@ public class Necesidadcapacitacion {
 
         workbook.close();
         fis.close();
+        //System.out.println("PROFESORES: "+profesores);
         return profesores;
     }
 
@@ -149,6 +153,7 @@ public class Necesidadcapacitacion {
 
         workbook.close();
         fis.close();
+        //System.out.println("NECESIDADES"+necesidades);
         return necesidades;
     }
 

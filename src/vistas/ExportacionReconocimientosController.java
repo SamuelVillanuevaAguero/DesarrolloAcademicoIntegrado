@@ -4,7 +4,6 @@
  */
 package vistas;
 
-import com.aspose.cells.SaveFormat;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -38,6 +37,8 @@ import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 
 import com.aspose.words.Document;
+import com.aspose.words.PdfSaveOptions;
+import com.aspose.words.SaveOptions;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -287,6 +288,11 @@ public class ExportacionReconocimientosController implements Initializable {
                 nombreCurso = checkNombres.getValue(); // Obtener el nombre del curso seleccionado
                 // Buscar el código correspondiente al nombre
                 codigoCurso = excelReader.obtenerCodigoPorNombre(nombreCurso); // Obtener el código del curso por nombre
+            } else {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION, "Selecciona un curso.");
+                alert.showAndWait();
+                txtFormatos.setDisable(true);
+                return;
             }
 
             if (nombreCurso != null && !nombreCurso.isEmpty()) {
@@ -651,8 +657,12 @@ public class ExportacionReconocimientosController implements Initializable {
         // Crear el documento Aspose a partir del archivo Word
         Document asposeDoc = new Document(rutaWord);
 
-        // Guardar en formato PDF
-        asposeDoc.save(rutaPDF, com.aspose.words.SaveFormat.PDF);
+        // Guardar en formato PDF  
+        PdfSaveOptions saveOptions = new PdfSaveOptions();
+        // Si deseas embebeder las fuentes completamente, puedes probar con esta opción 
+        saveOptions.setEmbedFullFonts(true);
+        asposeDoc.save(rutaPDF, saveOptions);
+        //asposeDoc.save(rutaPDF, com.aspose.words.SaveFormat.PDF);
 
         return rutaPDF; // Devolver la ruta del archivo PDF generado
     }
@@ -694,40 +704,13 @@ public class ExportacionReconocimientosController implements Initializable {
         String rutaPDF = directorioSalida + "Reconocimiento_" + nombreDocente + ".pdf";
 
         // Guardar como PDF
-        asposeDoc.save(rutaPDF, com.aspose.words.SaveFormat.PDF);
+        com.aspose.words.PdfSaveOptions saveOptions = new com.aspose.words.PdfSaveOptions();
+        saveOptions.setEmbedFullFonts(true);
+        asposeDoc.save(rutaPDF, saveOptions);
 
         return rutaPDF; // Devolver la ruta del PDF generado
     }
 
-    /*private String generarDocumentoPDF(String rutaPlantilla, String directorioSalida, String nombreDocente, String horasCurso) throws IOException {
-        FileInputStream fis = null;
-        FileOutputStream fos = null;
-        XWPFDocument documento = null;
-
-        try {
-            // Abrir la plantilla
-            fis = new FileInputStream(rutaPlantilla);
-            documento = new XWPFDocument(fis);
-
-            // Procesar todos los párrafos del documento
-            procesarParrafos(documento, nombreDocente, horasCurso);
-
-            // Guardar el archivo generado
-            String rutaArchivoGenerado = directorioSalida + "Reconocimiento_" + nombreDocente + ".docx";
-            fos = new FileOutputStream(rutaArchivoGenerado);
-
-            //
-            return rutaArchivoGenerado; // Devolver la ruta del archivo generado
-        } finally {
-            // Cerrar recursos manualmente
-            if (fos != null) {
-                fos.close();
-            }
-            if (fis != null) {
-                fis.close();
-            }
-        }
-    }*/
     // Procesa todos los párrafos en un documento
     private void procesarParrafos(XWPFDocument documento, String nombreDocente, String horasCurso) {
         // Obtén los valores adicionales de los TextFields y TextAreas

@@ -9,6 +9,7 @@ import static javafx.application.Application.launch;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
@@ -22,6 +23,7 @@ public class AppArranque extends Application{
         Parent root = FXMLLoader.load(getClass().getResource("/vistas/InicioSesion.fxml"));
         Scene scene = new Scene(root);
         
+        primaryStage.getIcons().add(new Image("/utilerias/general/icono.png"));
         primaryStage.setScene(scene);
         primaryStage.initStyle(StageStyle.UNDECORATED); //UNDECORATED sirve para quitarle la barra superior jeje
         primaryStage.show();

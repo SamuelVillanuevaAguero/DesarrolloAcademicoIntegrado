@@ -215,8 +215,8 @@ public class InicioSesionController implements Initializable {
         Enviando.setVisible(true); // Mostrar el mensaje "Enviando..." 
 
         String[] destinatarios = {
-            //"dda_zacatepec@tecnm.mx",
-            //"martha.cl@zacatepec.tecnm.mx",
+            "dda_zacatepec@tecnm.mx",
+            "martha.cl@zacatepec.tecnm.mx",
             "L21091124@zacatepec.tecnm.mx"// Lista de destinatarios
         };
 

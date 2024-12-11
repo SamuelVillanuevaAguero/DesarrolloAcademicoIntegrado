@@ -198,8 +198,10 @@ public class PrincipalController implements Initializable {
 
         // Asegurar que notificationPane esté cerrado inicialmente
         notificationPane.setVisible(false);
+        notiAlert.setVisible(false);
 
         generarNotificacionesEnVBox();
+        generarNotis();
         
          
         botonCerrar.setOnMouseClicked(event -> {
