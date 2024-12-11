@@ -28,7 +28,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import utilerias.busqueda.FilaDato;
+import utilerias.busqueda.filaDato;
 import utilerias.general.ControladorGeneral;
 
 import java.io.FileInputStream;
@@ -89,29 +89,29 @@ public class BusquedaEstadisticaController implements Initializable {
 
     //TABLA
     @FXML
-    private TableView<FilaDato> tabla;
+    private TableView<filaDato> tabla;
 
     //COLUMNAS DE LA TABLA
     @FXML
-    private TableColumn<FilaDato, Integer> columnaAño;
+    private TableColumn<filaDato, Integer> columnaAño;
     @FXML
-    private TableColumn<FilaDato, String> columnaPeriodo;
+    private TableColumn<filaDato, String> columnaPeriodo;
     @FXML
-    private TableColumn<FilaDato, String> columnaNombre;
+    private TableColumn<filaDato, String> columnaNombre;
     @FXML
-    private TableColumn<FilaDato, String> columnaApellidoPaterno;
+    private TableColumn<filaDato, String> columnaApellidoPaterno;
     @FXML
-    private TableColumn<FilaDato, String> columnaApellidoMaterno;
+    private TableColumn<filaDato, String> columnaApellidoMaterno;
     @FXML
-    private TableColumn<FilaDato, String> columnaDepartamentoLicenciatura;
+    private TableColumn<filaDato, String> columnaDepartamentoLicenciatura;
     @FXML
-    private TableColumn<FilaDato, String> columnaDepartamentoPosgrado;
+    private TableColumn<filaDato, String> columnaDepartamentoPosgrado;
     @FXML
-    private TableColumn<FilaDato, String> columnaAcreditado;
+    private TableColumn<filaDato, String> columnaAcreditado;
     @FXML
-    private TableColumn<FilaDato, String> columnaTipoCapacitacion;
+    private TableColumn<filaDato, String> columnaTipoCapacitacion;
     @FXML
-    private TableColumn<FilaDato, Integer> columnaNumeroCursos;
+    private TableColumn<filaDato, Integer> columnaNumeroCursos;
 
     //ETIQUETAS DE ESTADISTICAS
     @FXML
@@ -366,7 +366,7 @@ public class BusquedaEstadisticaController implements Initializable {
     //FIN---------------------------------------------------------------------------------------------------------
 
     //MÉTODOS DE ESCRITURA EN EXCEL-------------------------------------------------------------------------------
-    public void llenarExcel(Workbook workbook, TableView<FilaDato> tablaJavaFX, int año, int periodo) {
+    public void llenarExcel(Workbook workbook, TableView<filaDato> tablaJavaFX, int año, int periodo) {
         try {
             CellStyle estilo = crearEstiloCelda(workbook);
             Sheet sheet = workbook.getSheetAt(0); // Obtener la primera hoja
@@ -375,7 +375,7 @@ public class BusquedaEstadisticaController implements Initializable {
             int totalFD = 0;
 
             // Obtener los datos de la tabla de JavaFX
-            ObservableList<FilaDato> listaDocentes = tablaJavaFX.getItems();
+            ObservableList<filaDato> listaDocentes = tablaJavaFX.getItems();
 
             //Datos generales
             Row fila = sheet.getRow(4);
@@ -410,7 +410,7 @@ public class BusquedaEstadisticaController implements Initializable {
 
             for (int i = 0; i < listaDocentes.size(); i++) {
 
-                FilaDato filaDato = listaDocentes.get(i);
+                filaDato filaDato = listaDocentes.get(i);
 
                 // Obtener o crear la fila en el Excel
                 fila = sheet.getRow(filaInicio + y);
@@ -691,12 +691,12 @@ public class BusquedaEstadisticaController implements Initializable {
         }
     }
 
-    public int obtenerNumeroFilasUnicas(ObservableList<FilaDato> data) {
+    public int obtenerNumeroFilasUnicas(ObservableList<filaDato> data) {
         // Utilizamos un Set para almacenar combinaciones únicas
         Set<String> setUnico = new HashSet<>();
 
         // Recorremos los datos y agregamos la combinación al Set
-        for (FilaDato fila : data) {
+        for (filaDato fila : data) {
             String key = fila.getNombre() + " " + fila.getApellidoPaterno() + " " + fila.getApellidoMaterno();
             setUnico.add(key);  // Set no permite duplicados
         }
@@ -805,10 +805,10 @@ public class BusquedaEstadisticaController implements Initializable {
     //FIN-------------------------------------------------------------------------------------------------------
 
     //MÉTODO PARA LLENAR LA TABLA-------------------------------------------------------------------------------
-    private ObservableList<FilaDato> readAllExcelFiles(Integer año, Integer periodo, String tipoCapacitacion, String departamento, String acreditacion, String nivel) throws InvalidFormatException {
-        ObservableList<FilaDato> data = FXCollections.observableArrayList();
-        Map<String, FilaDato> dataMap = new HashMap<>();
-        Map<String, FilaDato> dataMap2 = new HashMap<>();
+    private ObservableList<filaDato> readAllExcelFiles(Integer año, Integer periodo, String tipoCapacitacion, String departamento, String acreditacion, String nivel) throws InvalidFormatException {
+        ObservableList<filaDato> data = FXCollections.observableArrayList();
+        Map<String, filaDato> dataMap = new HashMap<>();
+        Map<String, filaDato> dataMap2 = new HashMap<>();
 
         // Directorio base
         String baseDir = ControladorGeneral.obtenerRutaDeEjecusion() + "\\Gestion_de_Cursos\\Sistema\\condensados_vista_de_visualizacion_de_datos";
@@ -904,15 +904,15 @@ public class BusquedaEstadisticaController implements Initializable {
 
                         if (!dataMap2.containsKey(key2) && filaPosgrado.equalsIgnoreCase("si")) {
                             contadorPosgrado += 1;
-                            dataMap2.put(key2, new FilaDato(0, periodoCell, nombre, apellidoPaterno, apellidoMaterno, departamento, departamento, acreditacion, tipoCapacitacion, 0));
+                            dataMap2.put(key2, new filaDato(0, periodoCell, nombre, apellidoPaterno, apellidoMaterno, departamento, departamento, acreditacion, tipoCapacitacion, 0));
                         }
 
                         // Verificar si ya existe el registro en el Map
                         if (dataMap.containsKey(key)) {
-                            FilaDato existingDato = dataMap.get(key);
+                            filaDato existingDato = dataMap.get(key);
                             existingDato.setNoCursos(existingDato.getNoCursos() + 1);
                         } else {
-                            FilaDato newDato = new FilaDato(currentAño, periodoCell, nombre,
+                            filaDato newDato = new filaDato(currentAño, periodoCell, nombre,
                                     apellidoPaterno, apellidoMaterno, filaDepartamento, filaPosgrado,
                                     filaAcreditacion, filaTipoCapacitacion, 1);
                             dataMap.put(key, newDato);

@@ -56,4 +56,7 @@ public class filaDato {
     
     public String getTipoCapacitacion(){ return this.tipoCapacitacion;}
     public void setTipoCapacitacion(String tipoCapacitacion){this.tipoCapacitacion = tipoCapacitacion;}
+    
+    public static void prueba(){
+    }
 }
